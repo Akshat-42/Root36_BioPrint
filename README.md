@@ -1,6 +1,34 @@
-# BioPrint: Hybrid Behavioral Biometric Authentication Engine
+# BioPrint V2: Hybrid Behavioral Biometric Authentication Engine
 
-BioPrint is a continuous, zero-friction behavioral biometric authentication engine designed for sub-50ms verification. It models individual neuromuscular keystroke dynamics, drag-and-drop gesture kinematics (trajectory directness, velocity, drop drift, hold duration), cursor kinematics (velocity, acceleration, jerk, tortuosity), Fitts's Law target acquisition curves, and browser bot automation integrity heuristics.
+BioPrint V2 is a continuous, multi-modal behavioral biometric authentication engine engineered for sub-50ms verification. It pairs cryptographic **Argon2id salted password hashing** with **universal touch-typing dynamics** and **psychomotor kinematics**, eliminating rigid static passphrases while delivering explainable anomaly detection ($>2.5\sigma$ deviations).
+
+---
+
+## Key V2 Capabilities
+
+1. **Cryptographic Identity Layer**:
+   - Master password with double confirmation and Argon2id salted hashing (no plaintext stored).
+   - Instant cryptographic verification before biometric evaluation.
+
+2. **Scrambled Shape-Matching Motor Calibration (Top/Bottom Row)**:
+   - Top row: 3 source shapes (Circle, Triangle, Square).
+   - Bottom row: Target outline slots placed in **scrambled, non-aligned positions** (e.g., Square slot under Circle, Circle slot under Triangle, Triangle slot under Square).
+   - Measures non-linear diagonal trajectories, path tortuosity ($\tau = \frac{L_{\text{actual}}}{D_{\text{straight}}} \ge 1.0$), velocity curves, and docking release latency ($T_{\text{dock}}$).
+
+3. **Monkeytype-Style 30-Word Dynamic Typing Calibration**:
+   - 30-word dynamic English streaming test with active-word/letter highlighting (correct: green, error: red, active: caret blink).
+   - Universal psychomotor features:
+     - **QWERTY Hand-Switch Ratio ($R_{\text{hand}} = \frac{\bar{T}_{\text{cross}}}{\bar{T}_{\text{same}}}$)**: skilled touch typists exhibit $R_{\text{hand}} \approx 0.50 - 0.75$, while hunt-and-peck typists or bots have $R_{\text{hand}} \ge 1.0$.
+     - **Key Cluster Dwell Matrix**: Dwell distributions for vowels, top, home, and bottom rows.
+     - **Spacebar Saccade Latency ($T_{\text{space}}$)**: Word boundary cognitive transition delay.
+     - **Inter-Keystroke Interval Entropy ($CV = \frac{\sigma}{\mu}$)**: Neuromuscular rhythmic variance.
+     - **Error Dynamics**: Backspace frequency and typo recovery delay.
+
+4. **Authentication Terminal & Dynamic 2D Offset Dock**:
+   - Verification Natural Identity Pangram: *"Quick foxes jump over lazy brown dogs"*.
+   - Dynamic 2D Offset Dock: Submission target dynamically shifts position within $X \pm 80\text{px}, Y \pm 50\text{px}$ to defeat hardcoded cursor macros.
+   - Draggable security token replaces traditional submit buttons.
+   - Sub-50ms execution latency guarantee with itemized explainability diagnostics ($Z > 2.5\sigma$).
 
 ---
 
@@ -10,24 +38,10 @@ The system consists of three decoupled components:
 
 ```
 BioPrint/
-├── backend/       # FastAPI server, biometrics math engine, and SQLite database
-├── extension/     # Chrome Manifest V3 extension sentinel (silent capture & interception)
+├── backend/       # FastAPI server, Argon2id auth, biometrics math engine, and SQLite database
+├── extension/     # Chrome Manifest V3 extension sentinel (isTrusted & webdriver integrity)
 └── web/           # Zero-framework Vanilla HTML5/CSS3/JavaScript client application
 ```
-
----
-
-## Interactive "Shape-in-the-Hole" Drag & Drop Architecture
-
-BioPrint features an interactive neuromuscular challenge that replaces traditional static aim targets with high-entropy drag-and-drop dynamics:
-1. **Enrollment Phase (Multi-Shape Arena)**: A 3-shape matching challenge (Circle, Square, Triangle) dropped into matching target outline slots. Gathers multi-path trajectory samples, velocity profiles, and precision docking metrics with a live canvas trajectory overlay.
-2. **Testing / Login Phase (Drag-to-Unlock Key)**: A single draggable "Security Token / Key" that acts as the submission action when dropped into the matching vault hole, triggering instant sub-50ms behavioral verification (`POST /api/authenticate`).
-3. **Cross-Device Telemetry via Pointer Events**: Uses native Pointer Events (`pointerdown`, `pointermove`, `pointerup` with `setPointerCapture`) across desktop mouse, trackpad, and touchscreen surfaces, extracting:
-   * **Initial Drag Latency ($T_{\text{latency}}$)**: Delay between grasp (`pointerdown`) and initial movement $>3\text{px}$.
-   * **Drag Velocity & Acceleration ($\mu_v, \sigma_v, a$)**: Mean and variance of cursor speed across the drag path.
-   * **Trajectory Directness Ratio ($R = \frac{D_{\text{euclidean}}}{L_{\text{path}}}$)**: Tortuosity ratio ($\le 1.0$), capturing natural human arcs vs. robotic straight lines.
-   * **Drop Micro-Drift ($\Delta_{\text{drift}} = \sqrt{(x - x_0)^2 + (y - y_0)^2}$)**: Euclidean distance between final release coordinate and slot centroid.
-   * **Hold Duration ($T_{\text{hold}} = T_{\text{drop}} - T_{\text{start}}$)**: Total grasp-to-release duration.
 
 ---
 

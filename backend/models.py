@@ -1,5 +1,5 @@
 """
-BioPrint Behavioral Authentication Engine - Data Models
+BioPrint Behavioral Authentication Engine (V2) - Data Models
 SQLAlchemy ORM models for database persistence and Pydantic schemas for API validation.
 """
 
@@ -21,8 +21,9 @@ class UserRecord(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String(64), unique=True, index=True, nullable=False)
-    passphrase = Column(String(256), nullable=True)
-    sample_count = Column(Integer, default=0)
+    password_hash = Column(String(256), nullable=False)  # Argon2id / bcrypt salted hash
+    passphrase = Column(String(256), nullable=True)     # Legacy alias if needed
+    sample_count = Column(Integer, default=1)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -36,9 +37,10 @@ class BaselineProfileRecord(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String(64), ForeignKey("users.user_id"), unique=True, index=True, nullable=False)
-    keystroke_baseline_json = Column(Text, nullable=False)   # Serialized dict of dwell/flight distributions
-    motor_baseline_json = Column(Text, nullable=False)       # Serialized velocity, jerk, Fitts's params
-    cognitive_baseline_json = Column(Text, nullable=False)   # Serialized Stroop metrics
+    typing_baseline_json = Column(Text, nullable=False)   # Serialized QWERTY typing distributions (R_hand, clusters, etc.)
+    motor_baseline_json = Column(Text, nullable=False)    # Serialized motor distributions (tortuosity, docking, etc.)
+    keystroke_baseline_json = Column(Text, nullable=True) # Legacy alias
+    cognitive_baseline_json = Column(Text, nullable=True) # Optional/legacy
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("UserRecord", back_populates="baseline")
@@ -51,6 +53,7 @@ class VerificationLogRecord(Base):
     user_id = Column(String(64), ForeignKey("users.user_id"), index=True, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
     authenticated = Column(Boolean, nullable=False)
+    password_valid = Column(Boolean, default=False)
     confidence_score = Column(Float, nullable=False)
     latency_ms = Column(Float, nullable=False)
     signals_json = Column(Text, nullable=False)
@@ -65,8 +68,10 @@ class VerificationLogRecord(Base):
 
 class KeystrokeEvent(BaseModel):
     key: str
+    code: Optional[str] = None
     down_time: float = Field(..., description="Timestamp of keydown in milliseconds (performance.now)")
     up_time: float = Field(..., description="Timestamp of keyup in milliseconds (performance.now)")
+    is_trusted: bool = Field(default=True, description="DOM event.isTrusted property")
 
 
 class MouseEvent(BaseModel):
@@ -77,77 +82,76 @@ class MouseEvent(BaseModel):
 
 
 class DragGestureEvent(BaseModel):
-    shape_type: str = Field(default="token", description="Type of shape (circle, square, triangle, token)")
+    shape_type: str = Field(default="token", description="Shape type (circle, square, triangle, token)")
     start_time: float = Field(..., description="Timestamp of pointerdown")
     drop_time: float = Field(..., description="Timestamp of pointerup")
-    initial_drag_latency: float = Field(default=0.0, description="Time from shape appearance to pointerdown (ms)")
+    initial_drag_latency: float = Field(default=0.0, description="Time to pointerdown (ms)")
     hold_duration: float = Field(default=0.0, description="Duration held while dragging (ms)")
+    docking_latency: float = Field(default=0.0, description="Dwell time inside target hole before release (ms)")
     drag_velocity_mean: float = Field(default=0.0, description="Mean velocity px/s")
     drag_velocity_std: float = Field(default=0.0, description="Velocity standard deviation px/s")
     trajectory_directness_ratio: float = Field(default=1.0, description="Euclidean distance / Path length (0.0 - 1.0)")
+    tortuosity: float = Field(default=1.0, description="Path length / Euclidean distance (>= 1.0)")
     drop_drift_offset: float = Field(default=0.0, description="Radial distance from target hole center (px)")
     target_slot_id: Optional[str] = None
     trajectory: List[MouseEvent] = Field(default_factory=list)
 
 
-class MotorTargetEvent(BaseModel):
-    target_id: int
-    start_t: float
-    click_t: float
-    distance: float
-    width: float
-    overshoot: float = 0.0
-    trajectory: List[MouseEvent] = Field(default_factory=list)
+class TypingSessionTelemetry(BaseModel):
+    keystrokes: List[KeystrokeEvent] = Field(default_factory=list)
+    wpm: float = Field(default=0.0)
+    accuracy: float = Field(default=100.0)
+    backspace_count: int = Field(default=0)
+    duration_ms: float = Field(default=0.0)
 
 
-class StroopTrialEvent(BaseModel):
-    word: str
-    font_color: str
-    selected_color: str
-    reaction_time_ms: float
-    is_correct: bool
+class RegisterRequest(BaseModel):
+    username: str = Field(..., min_length=1, max_length=64)
+    password: str = Field(..., min_length=1)
+    confirm_password: str = Field(..., min_length=1)
+    password_keystrokes: List[KeystrokeEvent] = Field(default_factory=list, description="Keystrokes captured while entering password")
+    typing_telemetry: TypingSessionTelemetry
+    shape_telemetry: List[DragGestureEvent] = Field(..., min_length=1)
 
 
-class EnrollmentSample(BaseModel):
-    sample_index: int
-    keystrokes: List[KeystrokeEvent]
-    mouse_events: List[MouseEvent] = Field(default_factory=list)
-    motor_targets: List[MotorTargetEvent] = Field(default_factory=list)
-    drag_gestures: List[DragGestureEvent] = Field(default_factory=list)
-    stroop_trials: List[StroopTrialEvent] = Field(default_factory=list)
-
-
-class EnrollmentRequest(BaseModel):
-    user_id: str = Field(..., min_length=1, max_length=64)
-    passphrase: Optional[str] = ""
-    samples: List[EnrollmentSample] = Field(..., min_length=1)
-
-
-class EnrollmentResponse(BaseModel):
+class RegisterResponse(BaseModel):
     success: bool
     user_id: str
     message: str
-    sample_count: int
     baseline_summary: Dict[str, Any]
 
 
+class BrowserIntegrity(BaseModel):
+    is_webdriver: bool = Field(default=False)
+    user_agent: str = Field(default="")
+    screen_width: int = Field(default=0)
+    screen_height: int = Field(default=0)
+
+
 class VerificationRequest(BaseModel):
-    user_id: str = Field(..., min_length=1, max_length=64)
-    passphrase: Optional[str] = ""
-    keystrokes: List[KeystrokeEvent] = Field(default_factory=list)
+    username: Optional[str] = None
+    password: Optional[str] = ""
+    password_keystrokes: List[KeystrokeEvent] = Field(default_factory=list, description="Keystrokes captured from password input")
+    pangram_keystrokes: List[KeystrokeEvent] = Field(default_factory=list, description="Keystrokes captured from pangram input")
+    token_drag: Optional[DragGestureEvent] = None
     mouse_events: List[MouseEvent] = Field(default_factory=list)
+    browser_integrity: Optional[BrowserIntegrity] = None
+
+    # Backwards compatibility / aliases:
+    user_id: Optional[str] = None
+    passphrase: Optional[str] = None
+    keystrokes: List[KeystrokeEvent] = Field(default_factory=list)
     drag_gesture: Optional[DragGestureEvent] = None
     drag_gestures: List[DragGestureEvent] = Field(default_factory=list)
-    drag_dynamics: Optional[Dict[str, Any]] = None
-    button_context: Optional[Dict[str, Any]] = None  # target coordinates, dimensions
+    button_context: Optional[Dict[str, Any]] = None
 
 
 class SignalsBreakdown(BaseModel):
     bot_detected: bool
+    password_valid: bool
     keystroke_rhythm_match: float
     motor_kinematics_match: float
     drag_dynamics_match: float = 100.0
-    cognitive_delay_match: float = 100.0
 
 
 class VerificationResponse(BaseModel):
@@ -157,3 +161,9 @@ class VerificationResponse(BaseModel):
     signals: SignalsBreakdown
     explainability_reasons: List[str]
     details: Optional[Dict[str, Any]] = None
+
+
+# Backward-compatibility aliases
+EnrollmentRequest = RegisterRequest
+EnrollmentResponse = RegisterResponse
+

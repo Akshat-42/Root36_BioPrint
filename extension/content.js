@@ -353,20 +353,31 @@
     const passphrase = passInput ? passInput.value : "";
 
     const payload = {
+      username: userId,
       user_id: userId,
+      password: passphrase,
       passphrase: passphrase,
+      pangram_keystrokes: telemetry.keystrokes,
       keystrokes: telemetry.keystrokes,
       mouse_events: telemetry.mouseEvents,
-      button_context: telemetry.loginButtonContext,
+      token_drag: telemetry.dragGestures.length > 0 ? telemetry.dragGestures[telemetry.dragGestures.length - 1] : null,
+      drag_gesture: telemetry.dragGestures.length > 0 ? telemetry.dragGestures[telemetry.dragGestures.length - 1] : null,
       drag_gestures: telemetry.dragGestures,
-      drag_gesture: telemetry.dragGestures.length > 0 ? telemetry.dragGestures[telemetry.dragGestures.length - 1] : null
+      button_context: telemetry.loginButtonContext,
+      browser_integrity: {
+        is_webdriver: Boolean(navigator.webdriver),
+        user_agent: navigator.userAgent,
+        screen_width: window.screen.width,
+        screen_height: window.screen.height
+      }
     };
 
     console.log("[BioPrint Sentinel] Telemetry bundle prepared:", {
       user: userId,
       keystrokes: payload.keystrokes.length,
       mouseEvents: payload.mouse_events.length,
-      dragGestures: payload.drag_gestures.length
+      dragGestures: payload.drag_gestures.length,
+      isWebdriver: payload.browser_integrity.is_webdriver
     });
 
     // Provide visual pulse on badge

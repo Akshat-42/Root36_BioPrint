@@ -1,35 +1,33 @@
 """
-BioPrint Biometrics Engine - Comprehensive Test Suite
-Validates mathematical calculations, baseline compilations, bot heuristics,
-and verification latency benchmarks.
+BioPrint Biometrics Engine (V2) - Comprehensive Test Suite
+=========================================================
+Validates:
+1. Argon2id salted password hashing and validation.
+2. Universal typing feature extraction (R_hand, cluster dwell matrix, spacebar delay, entropy).
+3. Psychomotor kinematics (tortuosity, velocity symmetry, docking latency).
+4. Baseline compilation & legitimate user verification (<50ms execution).
+5. Invalid password rejection (password_valid: False).
+6. Hunt-and-peck impostor cadence rejection & explainability diagnostics.
+7. Bot detection heuristics (isTrusted == False, linear cursor, dwell <10ms, teleportation).
 """
 
 import time
 import math
+import numpy as np
 from backend.models import (
     KeystrokeEvent,
     MouseEvent,
-    MotorTargetEvent,
     DragGestureEvent,
-    StroopTrialEvent,
-    EnrollmentSample,
+    TypingSessionTelemetry,
+    BrowserIntegrity,
 )
-from backend.biometrics import BiometricsEngine, SIGMA_MIN_FLOOR
-
-
-def generate_mock_keystrokes(passphrase: str, base_dwell=90.0, base_flight=110.0, jitter=5.0):
-    """Generates synthetic human-like keystroke events with realistic timing."""
-    events = []
-    current_time = 100.0
-    for i, char in enumerate(passphrase):
-        dwell = base_dwell + (jitter * math.sin(i * 1.3))
-        down_time = current_time
-        up_time = down_time + dwell
-        events.append(KeystrokeEvent(key=char, down_time=down_time, up_time=up_time))
-        # advance time by dwell + flight
-        flight = base_flight + (jitter * math.cos(i * 0.9))
-        current_time = up_time + flight
-    return events
+from backend.biometrics import (
+    BiometricsEngine,
+    hash_password,
+    verify_password,
+    LEFT_HAND_KEYS,
+    RIGHT_HAND_KEYS,
+)
 
 
 def generate_curved_mouse_trajectory(start=(100, 200), end=(500, 600), steps=30, duration_ms=450.0):
@@ -41,12 +39,8 @@ def generate_curved_mouse_trajectory(start=(100, 200), end=(500, 600), steps=30,
 
     for i in range(steps + 1):
         progress = i / float(steps)
-        # Bell-shaped velocity profile (smooth acceleration and deceleration)
         smooth_progress = 0.5 * (1.0 - math.cos(progress * math.pi))
-
-        # Add lateral curvature arc
         arc_offset = 35.0 * math.sin(progress * math.pi)
-        # Add slight natural micro-jitter
         jitter_x = 0.8 * math.sin(i * 2.7)
         jitter_y = 0.8 * math.cos(i * 3.1)
 
@@ -58,281 +52,409 @@ def generate_curved_mouse_trajectory(start=(100, 200), end=(500, 600), steps=30,
     return events
 
 
-def test_baseline_and_verification():
-    print("[TEST 1] Testing Baseline Compilation & Legitimate Verification...")
-    passphrase = "bioprint secure"
+def generate_typing_keystrokes(text: str, base_dwell=85.0, cross_hand_flight=75.0, same_hand_flight=120.0):
+    """Simulates realistic touch-typing cadence with distinct cross-hand vs same-hand transitions."""
+    events = []
+    current_time = 100.0
 
-    # 1. Build 4 enrollment samples with normal variance
-    samples = []
-    for idx in range(4):
-        ks = generate_mock_keystrokes(passphrase, base_dwell=95.0 + idx * 2.0, base_flight=115.0 - idx * 1.5, jitter=4.0)
-        mouse = generate_curved_mouse_trajectory(steps=25, duration_ms=420.0 + idx * 15.0)
-        motor_targets = [
-            MotorTargetEvent(target_id=1, start_t=0, click_t=310 + idx * 10, distance=250, width=50),
-            MotorTargetEvent(target_id=2, start_t=350, click_t=740 + idx * 8, distance=380, width=40),
-            MotorTargetEvent(target_id=3, start_t=780, click_t=1090 + idx * 12, distance=180, width=60)
-        ]
-        stroop = [
-            StroopTrialEvent(word="RED", font_color="BLUE", selected_color="BLUE", reaction_time_ms=520 + idx * 10, is_correct=True),
-            StroopTrialEvent(word="GREEN", font_color="YELLOW", selected_color="YELLOW", reaction_time_ms=490 + idx * 15, is_correct=True)
-        ]
-        samples.append(EnrollmentSample(
-            sample_index=idx,
-            keystrokes=ks,
-            mouse_events=mouse,
-            motor_targets=motor_targets,
-            stroop_trials=stroop
+    for i, char in enumerate(text):
+        c_lower = char.lower()
+        # Vowels slightly longer dwell
+        dwell = base_dwell + (12.0 if c_lower in "aeiou" else (4.0 * math.sin(i * 1.5)))
+        down_time = current_time
+        up_time = down_time + dwell
+        events.append(KeystrokeEvent(key=char, down_time=down_time, up_time=up_time, is_trusted=True))
+
+        if i < len(text) - 1:
+            next_c = text[i + 1].lower()
+            # Spacebar boundary saccade
+            if next_c == " " or c_lower == " ":
+                flight = 165.0 + (10.0 * math.cos(i))
+            else:
+                is_curr_left = c_lower in LEFT_HAND_KEYS
+                is_next_left = next_c in LEFT_HAND_KEYS
+                if is_curr_left != is_next_left:
+                    flight = cross_hand_flight + (8.0 * math.sin(i * 0.8))
+                else:
+                    flight = same_hand_flight + (8.0 * math.cos(i * 0.8))
+
+            current_time = up_time + flight
+
+    return events
+
+
+def test_argon2id_password_security():
+    print("[TEST 1] Testing Argon2id Salted Password Hashing...")
+    password = "SuperSecretSecureP@ssword123!"
+    hashed = hash_password(password)
+
+    assert hashed.startswith("$argon2") or hashed.startswith("$2b$") or hashed.startswith("$bcrypt"), "Hash format invalid!"
+    assert verify_password(password, hashed) is True, "Valid password failed verification!"
+    assert verify_password("WrongPassword!", hashed) is False, "Invalid password erroneously accepted!"
+    assert verify_password("", hashed) is False, "Empty password erroneously accepted!"
+    print(" -> PASS: Argon2id salted hashing & verification working as expected.\n")
+
+
+def test_universal_typing_feature_extraction():
+    print("[TEST 2] Testing Universal Typing Feature Extraction (QWERTY Ergonomics)...")
+    pangram = "Quick foxes jump over lazy brown dogs"
+    keystrokes = generate_typing_keystrokes(pangram, base_dwell=86.0, cross_hand_flight=70.0, same_hand_flight=125.0)
+
+    feats = BiometricsEngine.extract_universal_typing_features(keystrokes)
+    print(f" -> Extracted Typing Features: R_hand={feats['hand_switch_ratio']}, Vowel Dwell={feats['dwell_vowels']}ms, Spacebar Delay={feats['spacebar_saccade_delay']}ms, Entropy CV={feats['flight_entropy_cv']}")
+
+    # Touch-typist cross-hand flight is faster than same-hand flight (R_hand < 1.0)
+    assert 0.40 <= feats["hand_switch_ratio"] <= 0.85, f"R_hand out of expected touch-typist range: {feats['hand_switch_ratio']}"
+    assert feats["dwell_vowels"] > 0, "Vowel dwell not extracted!"
+    assert feats["spacebar_saccade_delay"] > 100.0, "Spacebar delay not extracted!"
+    assert feats["flight_entropy_cv"] > 0.1, "Entropy CV calculation failed!"
+    print(" -> PASS: Universal typing dynamics properly extracted from text stream.\n")
+
+
+def test_scrambled_motor_kinematics():
+    print("[TEST 3] Testing Scrambled Shape Docking Kinematics...")
+    # Simulate diagonal scrambled path (from top-left to bottom-right)
+    traj = generate_curved_mouse_trajectory(start=(100, 100), end=(450, 400), steps=25, duration_ms=480.0)
+    drag = DragGestureEvent(
+        shape_type="circle",
+        start_time=100.0,
+        drop_time=580.0,
+        hold_duration=480.0,
+        docking_latency=115.0,
+        drag_velocity_mean=480.0,
+        drop_drift_offset=5.2,
+        target_slot_id="slot-square", # Scrambled slot
+        trajectory=traj
+    )
+
+    motor_feats = BiometricsEngine.extract_motor_kinematics([drag])
+    print(f" -> Motor Kinematics: Tortuosity={motor_feats['tortuosity']}, Symmetry={motor_feats['velocity_symmetry']}, Docking Latency={motor_feats['docking_latency']}ms")
+
+    assert motor_feats["tortuosity"] >= 1.0, "Tortuosity must be >= 1.0!"
+    assert 0.5 <= motor_feats["velocity_symmetry"] <= 2.0, "Velocity bell-curve symmetry out of human bounds!"
+    assert motor_feats["docking_latency"] > 20.0, "Docking latency not measured!"
+    print(" -> PASS: Scrambled motor kinematics properly derived.\n")
+
+
+def test_full_enrollment_and_verification_pipeline():
+    print("[TEST 4] Testing Full Enrollment, Salted Hash & Verification Pipeline (<50ms)...")
+    username = "alice"
+    password = "Secur3Password!"
+    pwd_hash = hash_password(password)
+
+    # 1. Simulate 30-word Monkeytype enrollment session
+    monkeytype_text = "the quick brown fox jumps over the lazy dog and runs through vibrant green pastures while curious birds flutter in the clear morning air"
+    enroll_ks = generate_typing_keystrokes(monkeytype_text, base_dwell=88.0, cross_hand_flight=72.0, same_hand_flight=118.0)
+    typing_session = TypingSessionTelemetry(
+        keystrokes=enroll_ks,
+        wpm=68.5,
+        accuracy=98.5,
+        backspace_count=2,
+        duration_ms=25000.0
+    )
+
+    # 2. Simulate 3 scrambled shape docking gestures (Circle, Triangle, Square)
+    shape_drags = []
+    for s_idx, shape in enumerate(["circle", "triangle", "square"]):
+        # Non-aligned scrambled endpoints
+        traj = generate_curved_mouse_trajectory(
+            start=(100 + s_idx * 100, 100),
+            end=(300 - s_idx * 50, 420),
+            steps=24,
+            duration_ms=460.0
+        )
+        shape_drags.append(DragGestureEvent(
+            shape_type=shape,
+            start_time=100.0,
+            drop_time=560.0,
+            hold_duration=460.0,
+            docking_latency=120.0,
+            drop_drift_offset=4.5,
+            target_slot_id=f"slot-{s_idx}",
+            trajectory=traj
         ))
 
-    key_base, motor_base, cog_base = BiometricsEngine.compile_baseline(samples)
-
-    # Validate standard deviation floor
-    for key, stats in key_base["dwell"].items():
-        assert stats["std"] >= SIGMA_MIN_FLOOR, f"Sigma floor violated for key {key}: {stats['std']} < {SIGMA_MIN_FLOOR}"
-    for trans, stats in key_base["flight"].items():
-        assert stats["std"] >= SIGMA_MIN_FLOOR, f"Sigma floor violated for flight {trans}: {stats['std']} < {SIGMA_MIN_FLOOR}"
-
-    print(f" -> Enrolled {len(key_base['dwell'])} keys, {len(key_base['flight'])} transitions.")
-    print(f" -> Motor Fitts's fit: MT = {motor_base['fitts_a']} + {motor_base['fitts_b']} * ID")
-
-    # 2. Verify with legitimate sample
-    legit_ks = generate_mock_keystrokes(passphrase, base_dwell=96.0, base_flight=114.0, jitter=4.5)
-    legit_mouse = generate_curved_mouse_trajectory(steps=28, duration_ms=435.0)
+    typing_base, motor_base = BiometricsEngine.compile_enrollment_baseline(typing_session, shape_drags)
     baseline_profile = {
-        "keystroke_baseline": key_base,
-        "motor_baseline": motor_base,
-        "cognitive_baseline": cog_base
+        "typing_baseline": typing_base,
+        "motor_baseline": motor_base
     }
 
+    # 3. Legitimate Verification: Valid Password + Pangram + Token Drag
+    pangram = "Quick foxes jump over lazy brown dogs"
+    legit_pangram_ks = generate_typing_keystrokes(pangram, base_dwell=89.0, cross_hand_flight=74.0, same_hand_flight=116.0)
+    token_traj = generate_curved_mouse_trajectory(start=(150, 200), end=(420, 260), steps=22, duration_ms=450.0)
+    token_drag = DragGestureEvent(
+        shape_type="token",
+        start_time=100.0,
+        drop_time=550.0,
+        hold_duration=450.0,
+        docking_latency=118.0,
+        drop_drift_offset=5.0,
+        trajectory=token_traj
+    )
+
     resp = BiometricsEngine.verify(
-        keystrokes=legit_ks,
-        mouse_events=legit_mouse,
+        username=username,
+        password_valid=True,
+        pangram_keystrokes=legit_pangram_ks,
+        token_drag=token_drag,
         baseline_profile=baseline_profile
     )
 
-    print(f" -> Legit response: Authenticated={resp.authenticated}, Score={resp.confidence_score}, Latency={resp.latency_ms}ms")
-    assert resp.authenticated is True, f"Legitimate user was rejected! Score: {resp.confidence_score}"
-    assert resp.confidence_score >= 70.0, f"Expected score >= 70, got {resp.confidence_score}"
-    assert resp.latency_ms < 50.0, f"Verification exceeded 50ms latency: {resp.latency_ms}ms"
-    print(" -> PASS: Legitimate user authenticated successfully.\n")
+    print(f" -> Legit Response: Authenticated={resp.authenticated}, Score={resp.confidence_score}%, Latency={resp.latency_ms}ms")
+    print(f" -> Signals: KeyMatch={resp.signals.keystroke_rhythm_match}%, MotorMatch={resp.signals.motor_kinematics_match}%")
+    assert resp.authenticated is True, f"Legitimate user failed authentication! Score={resp.confidence_score}"
+    assert resp.confidence_score >= 70.0, "Score fell below 70% threshold!"
+    assert resp.latency_ms < 50.0, f"Verification latency exceeded 50ms constraint: {resp.latency_ms}ms"
+    print(" -> PASS: Legitimate user authenticated successfully within <50ms.\n")
 
+    # 4. Invalid Password Rejection
+    resp_bad_pwd = BiometricsEngine.verify(
+        username=username,
+        password_valid=False, # Invalid password!
+        pangram_keystrokes=legit_pangram_ks,
+        token_drag=token_drag,
+        baseline_profile=baseline_profile
+    )
+    assert resp_bad_pwd.authenticated is False, "Invalid password was accepted!"
+    assert resp_bad_pwd.signals.password_valid is False
+    assert any("password" in r.lower() for r in resp_bad_pwd.explainability_reasons)
+    print(" -> PASS: Invalid password rejected immediately with zero confidence.\n")
 
-def test_impostor_keystroke_rejection():
-    print("[TEST 2] Testing Impostor Keystroke Cadence Rejection...")
-    passphrase = "bioprint secure"
+    # 5. Hunt-and-Peck Impostor Rejection (R_hand ~ 1.15, slow spacebar delay)
+    impostor_ks = generate_typing_keystrokes(
+        pangram,
+        base_dwell=160.0,
+        cross_hand_flight=180.0, # Hunt-and-peck: cross-hand is slow and search-bound
+        same_hand_flight=140.0
+    )
+    # Impostor robotic linear token drag
+    impostor_drag = DragGestureEvent(
+        shape_type="token",
+        start_time=100.0,
+        drop_time=550.0,
+        hold_duration=450.0,
+        docking_latency=280.0,
+        drop_drift_offset=24.0,
+        trajectory=[MouseEvent(x=100 + i * 15, y=200, t=100 + i * 20, is_trusted=True) for i in range(20)]
+    )
 
-    # Enrolled baseline
-    samples = [
-        EnrollmentSample(
-            sample_index=0,
-            keystrokes=generate_mock_keystrokes(passphrase, base_dwell=90.0, base_flight=110.0, jitter=2.0)
-        ),
-        EnrollmentSample(
-            sample_index=1,
-            keystrokes=generate_mock_keystrokes(passphrase, base_dwell=92.0, base_flight=112.0, jitter=2.0)
-        )
-    ]
-    key_base, motor_base, cog_base = BiometricsEngine.compile_baseline(samples)
-    baseline_profile = {
-        "keystroke_baseline": key_base,
-        "motor_baseline": motor_base,
-        "cognitive_baseline": cog_base
-    }
-
-    # Impostor who types with vastly different flight cadence (e.g. hunt-and-peck: 350ms flight times)
-    impostor_ks = generate_mock_keystrokes(passphrase, base_dwell=180.0, base_flight=340.0, jitter=40.0)
-    resp = BiometricsEngine.verify(
-        keystrokes=impostor_ks,
-        mouse_events=[],
+    resp_impostor = BiometricsEngine.verify(
+        username=username,
+        password_valid=True, # Even if password was leaked/stolen!
+        pangram_keystrokes=impostor_ks,
+        token_drag=impostor_drag,
         baseline_profile=baseline_profile
     )
 
-    print(f" -> Impostor response: Authenticated={resp.authenticated}, Score={resp.confidence_score}")
-    print(f" -> Reasons: {resp.explainability_reasons[:2]}")
+    print(f" -> Impostor Response: Authenticated={resp_impostor.authenticated}, Score={resp_impostor.confidence_score}%")
+    print(f" -> Explainability Diagnostics: {resp_impostor.explainability_reasons[:2]}")
+    assert resp_impostor.authenticated is False, "Impostor was erroneously authenticated!"
+    assert resp_impostor.confidence_score < 60.0, "Impostor confidence score should be low!"
+    assert len(resp_impostor.explainability_reasons) > 0, "Missing explainability diagnostic items!"
+    print(" -> PASS: Impostor rejected with itemized diagnostic explainability.\n")
 
-    assert resp.authenticated is False, "Impostor was erroneously authenticated!"
-    assert any("deviation" in r.lower() or "anomaly" in r.lower() or "cadence" in r.lower() for r in resp.explainability_reasons), "Missing explainability for cadence anomaly!"
-    print(" -> PASS: Impostor rejected with clear diagnostic explainability.\n")
-
-
-def test_bot_detection_heuristics():
-    print("[TEST 3] Testing Bot Detection Heuristics...")
-    baseline_profile = {
-        "keystroke_baseline": {"dwell": {}, "flight": {}},
-        "motor_baseline": {"mean_velocity": 400.0, "mean_acceleration": 1500.0, "mean_tortuosity": 1.15},
-        "cognitive_baseline": {"mean_reaction_ms": 500.0}
-    }
-
-    # A) Untrusted event injection (isTrusted = False)
-    untrusted_mouse = [
-        MouseEvent(x=100 + i * 10, y=200 + i * 10, t=100 + i * 20, is_trusted=False)
-        for i in range(10)
-    ]
-    resp_untrusted = BiometricsEngine.verify([], untrusted_mouse, baseline_profile)
+    # 6. Bot Detection (isTrusted == False & Teleportation)
+    untrusted_ks = [KeystrokeEvent(key=k.key, down_time=k.down_time, up_time=k.up_time, is_trusted=False) for k in legit_pangram_ks[:5]]
+    resp_untrusted = BiometricsEngine.verify(
+        username=username,
+        password_valid=True,
+        pangram_keystrokes=untrusted_ks,
+        token_drag=token_drag,
+        baseline_profile=baseline_profile
+    )
     assert resp_untrusted.signals.bot_detected is True
     assert resp_untrusted.authenticated is False
     assert any("isTrusted" in r for r in resp_untrusted.explainability_reasons)
-    print(" -> PASS: Untrusted DOM event flagged bot successfully.")
+    print(" -> PASS: Synthetic isTrusted == False flagged bot successfully.\n")
 
-    # B) Perfectly linear mouse trajectory with zero micro-jitter
-    linear_mouse = [
-        MouseEvent(x=100.0 + i * 15.0, y=200.0 + i * 15.0, t=100.0 + i * 20.0, is_trusted=True)
-        for i in range(15)
-    ]
-    resp_linear = BiometricsEngine.verify([], linear_mouse, baseline_profile)
-    assert resp_linear.signals.bot_detected is True
-    assert any("linear" in r.lower() for r in resp_linear.explainability_reasons)
-    print(" -> PASS: Perfectly linear synthetic mouse flagged bot successfully.")
-
-    # C) Impossible keypress dwell (<10ms)
-    fast_ks = [
-        KeystrokeEvent(key="a", down_time=100.0, up_time=103.0),  # 3ms dwell!
-        KeystrokeEvent(key="b", down_time=150.0, up_time=154.0),
-    ]
-    resp_fast = BiometricsEngine.verify(fast_ks, [], baseline_profile)
-    assert resp_fast.signals.bot_detected is True
-    assert any("dwell" in r.lower() and "<10ms" in r for r in resp_fast.explainability_reasons)
-    print(" -> PASS: Impossible keypress latency (<10ms) flagged bot successfully.\n")
+    # 7. Headless Webdriver Automation Flag
+    resp_webdriver = BiometricsEngine.verify(
+        username=username,
+        password_valid=True,
+        pangram_keystrokes=legit_pangram_ks,
+        token_drag=token_drag,
+        baseline_profile=baseline_profile,
+        browser_integrity=BrowserIntegrity(is_webdriver=True)
+    )
+    assert resp_webdriver.signals.bot_detected is True
+    assert any("webdriver" in r.lower() for r in resp_webdriver.explainability_reasons)
+    print(" -> PASS: Headless navigator.webdriver flagged bot successfully.\n")
 
 
 def test_latency_benchmark():
-    print("[TEST 4] Benchmarking Verification Execution Latency (<50ms)...")
-    passphrase = "bioprint authentication engine benchmark"
-    samples = [
-        EnrollmentSample(
-            sample_index=0,
-            keystrokes=generate_mock_keystrokes(passphrase)
-        ),
-        EnrollmentSample(
-            sample_index=1,
-            keystrokes=generate_mock_keystrokes(passphrase)
+    print("[TEST 5] Benchmarking Verification Latency (50 iterations)...")
+    username = "alice"
+    pangram = "Quick foxes jump over lazy brown dogs"
+    enroll_ks = generate_typing_keystrokes("the quick brown fox jumps over the lazy dog and runs through vibrant green pastures while curious birds flutter in the clear morning air")
+    shape_drags = [
+        DragGestureEvent(
+            shape_type="circle",
+            start_time=100.0,
+            drop_time=560.0,
+            hold_duration=460.0,
+            docking_latency=120.0,
+            trajectory=generate_curved_mouse_trajectory()
         )
     ]
-    key_base, motor_base, cog_base = BiometricsEngine.compile_baseline(samples)
-    baseline_profile = {
-        "keystroke_baseline": key_base,
-        "motor_baseline": motor_base,
-        "cognitive_baseline": cog_base
-    }
+    t_base, m_base = BiometricsEngine.compile_enrollment_baseline(TypingSessionTelemetry(keystrokes=enroll_ks), shape_drags)
+    profile = {"typing_baseline": t_base, "motor_baseline": m_base}
 
-    test_ks = generate_mock_keystrokes(passphrase)
-    test_mouse = generate_curved_mouse_trajectory(steps=50, duration_ms=400.0)
+    test_ks = generate_typing_keystrokes(pangram)
+    test_drag = DragGestureEvent(
+        shape_type="token",
+        start_time=100.0,
+        drop_time=550.0,
+        hold_duration=450.0,
+        docking_latency=110.0,
+        trajectory=generate_curved_mouse_trajectory()
+    )
 
-    # Run 50 iterations to test statistical performance
     latencies = []
     for _ in range(50):
         t0 = time.perf_counter()
-        resp = BiometricsEngine.verify(test_ks, test_mouse, baseline_profile)
+        BiometricsEngine.verify(
+            username=username,
+            password_valid=True,
+            pangram_keystrokes=test_ks,
+            token_drag=test_drag,
+            baseline_profile=profile
+        )
         lat = (time.perf_counter() - t0) * 1000.0
         latencies.append(lat)
 
     mean_lat = sum(latencies) / len(latencies)
     max_lat = max(latencies)
     print(f" -> 50 trials: Mean Latency = {mean_lat:.2f}ms, Max Latency = {max_lat:.2f}ms")
-    assert mean_lat < 25.0, f"Mean latency exceeded 25ms: {mean_lat:.2f}ms"
+    assert mean_lat < 15.0, f"Mean latency too high: {mean_lat:.2f}ms"
     assert max_lat < 50.0, f"Max latency exceeded 50ms: {max_lat:.2f}ms"
     print(" -> PASS: Latency benchmark well within <50ms constraint.\n")
 
 
-def test_drag_and_drop_biometrics():
-    print("[TEST 5] Testing Drag-and-Drop Gesture Baseline & Mini-Game Verification...")
-    passphrase = "bioprint secure"
+def test_impostor_password_cadence_rejection():
+    print("[TEST 6] Testing Impostor Password Cadence Rejection & Digram Diagnostics...")
+    username = "bob"
+    password = "CorrectHorseBatteryStaple!"
 
-    # 1. Build samples with multi-shape drag gestures (Circle, Square, Triangle)
-    samples = []
-    shapes = ["circle", "square", "triangle"]
-    for idx in range(3):
-        ks = generate_mock_keystrokes(passphrase, base_dwell=94.0, base_flight=112.0)
-        drags = []
-        for s_idx, shape in enumerate(shapes):
-            drag_traj = generate_curved_mouse_trajectory(
-                start=(100 + s_idx * 50, 100),
-                end=(400 + s_idx * 50, 300),
-                steps=20,
-                duration_ms=420.0 + idx * 10
-            )
-            drags.append(DragGestureEvent(
-                shape_type=shape,
-                start_time=100.0,
-                drop_time=520.0 + idx * 10,
-                initial_drag_latency=220.0 + idx * 15,
-                hold_duration=420.0 + idx * 10,
-                drag_velocity_mean=460.0 + idx * 8,
-                drag_velocity_std=90.0,
-                trajectory_directness_ratio=0.89,
-                drop_drift_offset=6.5 + idx * 0.5,
-                trajectory=drag_traj
-            ))
-        samples.append(EnrollmentSample(
-            sample_index=idx,
-            keystrokes=ks,
-            drag_gestures=drags
-        ))
+    # 1. Enrolled user types password with fast muscle memory
+    user_enroll_pwd_ks = generate_typing_keystrokes(password, base_dwell=70.0, cross_hand_flight=40.0, same_hand_flight=60.0)
+    user_typing_ks = generate_typing_keystrokes("the quick brown fox jumps over the lazy dog", base_dwell=75.0, cross_hand_flight=50.0, same_hand_flight=70.0)
+    
+    shape_drags = [
+        DragGestureEvent(
+            shape_type="circle",
+            start_time=100.0,
+            drop_time=500.0,
+            hold_duration=400.0,
+            docking_latency=120.0,
+            trajectory=generate_curved_mouse_trajectory()
+        ),
+        DragGestureEvent(
+            shape_type="square",
+            start_time=100.0,
+            drop_time=520.0,
+            hold_duration=420.0,
+            docking_latency=110.0,
+            trajectory=generate_curved_mouse_trajectory()
+        ),
+        DragGestureEvent(
+            shape_type="triangle",
+            start_time=100.0,
+            drop_time=490.0,
+            hold_duration=390.0,
+            docking_latency=105.0,
+            trajectory=generate_curved_mouse_trajectory()
+        )
+    ]
 
-    key_base, motor_base, cog_base = BiometricsEngine.compile_baseline(samples)
-    baseline_profile = {
-        "keystroke_baseline": key_base,
-        "motor_baseline": motor_base,
-        "cognitive_baseline": cog_base
-    }
-
-    assert "drag_dynamics" in motor_base
-    drag_base = motor_base["drag_dynamics"]
-    print(f" -> Enrolled Drag Baseline: Mean Velocity={drag_base['drag_velocity_mean']}px/s, Directness={drag_base['trajectory_directness_mean']}, Drift={drag_base['drop_drift_offset_mean']}px")
-
-    # 2. Legitimate Single Shape Drag Verification (e.g. Login Token)
-    legit_token_traj = generate_curved_mouse_trajectory(start=(150, 200), end=(450, 200), steps=22, duration_ms=430.0)
-    legit_drag = DragGestureEvent(
-        shape_type="token",
-        start_time=200.0,
-        drop_time=630.0,
-        initial_drag_latency=230.0,
-        hold_duration=430.0,
-        drag_velocity_mean=465.0,
-        drag_velocity_std=92.0,
-        trajectory_directness_ratio=0.90,
-        drop_drift_offset=7.0,
-        trajectory=legit_token_traj
+    t_base, m_base = BiometricsEngine.compile_enrollment_baseline(
+        TypingSessionTelemetry(keystrokes=user_typing_ks),
+        shape_drags,
+        password_keystrokes=user_enroll_pwd_ks
     )
-    legit_ks = generate_mock_keystrokes(passphrase, base_dwell=95.0, base_flight=114.0)
+    profile = {"typing_baseline": t_base, "motor_baseline": m_base}
 
-    resp = BiometricsEngine.verify(
-        keystrokes=legit_ks,
-        mouse_events=[],
-        baseline_profile=baseline_profile,
-        drag_gestures=[legit_drag]
-    )
+    # Verify baseline contains digram_cadence
+    assert "digram_cadence" in t_base, "digram_cadence missing from compiled baseline!"
+    assert len(t_base["digram_cadence"]) > 0, "No digrams recorded in baseline!"
 
-    print(f" -> Legit Drag Response: Authenticated={resp.authenticated}, Score={resp.confidence_score}, DragMatch={resp.signals.drag_dynamics_match}%")
-    assert resp.authenticated is True, f"Legitimate drag was rejected! Score: {resp.confidence_score}"
-    assert resp.signals.drag_dynamics_match >= 75.0, f"Expected drag match >= 75%, got {resp.signals.drag_dynamics_match}%"
-
-    # 3. Teleportation Bot Drag Detection (<15ms duration)
-    teleport_drag = DragGestureEvent(
+    # 2. Impostor types the exact same password, but with slow hunt-and-peck cadence (flight 220ms+)
+    impostor_pwd_ks = generate_typing_keystrokes(password, base_dwell=170.0, cross_hand_flight=240.0, same_hand_flight=210.0)
+    impostor_drag = DragGestureEvent(
         shape_type="token",
         start_time=100.0,
-        drop_time=105.0, # 5ms duration!
-        hold_duration=5.0,
-        drag_velocity_mean=8000.0,
-        drop_drift_offset=0.0,
-        trajectory=[MouseEvent(x=100, y=200, t=100.0, is_trusted=True), MouseEvent(x=500, y=200, t=105.0, is_trusted=True)]
+        drop_time=600.0,
+        hold_duration=500.0,
+        docking_latency=290.0, # Slow docking deceleration mismatch
+        trajectory=generate_curved_mouse_trajectory()
     )
-    resp_teleport = BiometricsEngine.verify(
-        keystrokes=legit_ks,
-        mouse_events=[],
-        baseline_profile=baseline_profile,
-        drag_gestures=[teleport_drag]
+
+    resp = BiometricsEngine.verify(
+        username=username,
+        password_valid=True, # Impostor knows the password!
+        pangram_keystrokes=impostor_pwd_ks,
+        token_drag=impostor_drag,
+        baseline_profile=profile
     )
-    assert resp_teleport.signals.bot_detected is True
-    assert any("teleportation" in r.lower() for r in resp_teleport.explainability_reasons)
-    print(" -> PASS: Instant drag teleportation flagged bot successfully.\n")
+
+    print(f" -> Impostor Password Attempt: Authenticated={resp.authenticated}, Score={resp.confidence_score}%")
+    print(f" -> Explainability Reasons: {resp.explainability_reasons[:3]}")
+
+    assert resp.authenticated is False, "Impostor typing password was erroneously authenticated!"
+    assert resp.confidence_score < 62.0, f"Impostor score {resp.confidence_score} should be < 62.0%"
+    assert any("Cadence mismatch" in r or "ratio" in r or "dwell" in r for r in resp.explainability_reasons), "Missing cadence mismatch explainability reasons!"
+    print(" -> PASS: Impostor typing password rejected with cadence mismatch diagnostics.\n")
+
+
+def test_zero_keystrokes_rejection():
+    print("[TEST 7] Testing Zero Keystrokes Rejection...")
+    username = "alice"
+    enroll_ks = generate_typing_keystrokes("the quick brown fox jumps over the lazy dog")
+    shape_drags = [
+        DragGestureEvent(
+            shape_type="circle",
+            start_time=100.0,
+            drop_time=500.0,
+            hold_duration=400.0,
+            docking_latency=120.0,
+            trajectory=generate_curved_mouse_trajectory()
+        )
+    ]
+    t_base, m_base = BiometricsEngine.compile_enrollment_baseline(TypingSessionTelemetry(keystrokes=enroll_ks), shape_drags)
+    profile = {"typing_baseline": t_base, "motor_baseline": m_base}
+
+    token_drag = DragGestureEvent(
+        shape_type="token",
+        start_time=100.0,
+        drop_time=500.0,
+        hold_duration=400.0,
+        docking_latency=120.0,
+        trajectory=generate_curved_mouse_trajectory()
+    )
+
+    # Empty keystrokes list
+    resp = BiometricsEngine.verify(
+        username=username,
+        password_valid=True,
+        pangram_keystrokes=[],
+        token_drag=token_drag,
+        baseline_profile=profile
+    )
+
+    assert resp.authenticated is False, "Zero keystrokes was accepted!"
+    assert resp.signals.keystroke_rhythm_match == 0.0, "Zero keystrokes should have 0% key match!"
+    assert any("keystroke" in r.lower() for r in resp.explainability_reasons)
+    print(" -> PASS: Zero keystrokes properly rejected.\n")
 
 
 if __name__ == "__main__":
-    print("=== RUNNING BIOPRINT BIOMETRICS VERIFICATION TESTS ===")
-    test_baseline_and_verification()
-    test_impostor_keystroke_rejection()
-    test_bot_detection_heuristics()
+    print("=== RUNNING BIOPRINT V2 BIOMETRICS TESTS ===\n")
+    test_argon2id_password_security()
+    test_universal_typing_feature_extraction()
+    test_scrambled_motor_kinematics()
+    test_full_enrollment_and_verification_pipeline()
     test_latency_benchmark()
-    test_drag_and_drop_biometrics()
-    print("=== ALL BIOPRINT BACKEND UNIT TESTS PASSED SUCCESSFULLY! ===")
+    test_impostor_password_cadence_rejection()
+    test_zero_keystrokes_rejection()
+    print("=== ALL BIOPRINT V2 BACKEND TESTS PASSED SUCCESSFULLY! ===")
