@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BioPrint Sentinel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0A0E1A;
+      color: #E2E8F0;
+      padding: 16px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #00F0FF, #3B82F6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      color: #0A0E1A;
+      font-size: 14px;
+    }
+    .logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #F8FAFC;
+    }
+    .status-pill {
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #10B981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #94A3B8;
+      margin-bottom: 8px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .metric-row:last-child {
+      border-bottom: none;
+    }
+    .metric-val {
+      font-family: monospace;
+      font-weight: 600;
+      color: #00F0FF;
+    }
+    .btn {
+      width: 100%;
+      padding: 10px;
+      background: #1E293B;
+      color: #F1F5F9;
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn:hover {
+      background: #00F0FF;
+      color: #0A0E1A;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-area">
+      <div class="logo-icon">BP</div>
+      <div class="logo-text">BioPrint Sentinel</div>
+    </div>
+    <div class="status-pill" id="status-pill">
+      <div class="status-dot"></div>
+      <span id="status-text">Active</span>
+    </div>
+  </div>
+
+  <div class="section-title">Telemetry Engine Status</div>
+  <div class="card">
+    <div class="metric-row">
+      <span>Backend Daemon:</span>
+      <span class="metric-val" id="backend-status">Checking...</span>
+    </div>
+    <div class="metric-row">
+      <span>Port:</span>
+      <span class="metric-val">127.0.0.1:8000</span>
+    </div>
+    <div class="metric-row">
+      <span>Detection Heuristics:</span>
+      <span class="metric-val" style="color: #10B981;">Z-Score & Bot Heuristics</span>
+    </div>
+    <div class="metric-row">
+      <span>Latency Constraint:</span>
+      <span class="metric-val">&lt; 50ms</span>
+    </div>
+  </div>
+
+  <button class="btn" id="check-btn">Ping BioPrint Daemon</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>
