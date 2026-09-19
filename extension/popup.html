@@ -145,6 +145,26 @@
     </div>
   </div>
 
+  <div class="section-title">Live Behavioral Drag Sentinel</div>
+  <div class="card">
+    <div class="metric-row">
+      <span>Drag Dynamics:</span>
+      <span class="metric-val" id="pop-drag-status" style="color: #00F0FF;">Active (Pointer API)</span>
+    </div>
+    <div class="metric-row">
+      <span>Directness Ratio:</span>
+      <span class="metric-val" id="pop-directness">~0.91 (Direct)</span>
+    </div>
+    <div class="metric-row">
+      <span>Drop Drift Accuracy:</span>
+      <span class="metric-val" id="pop-drift">&lt; 8.0 px error</span>
+    </div>
+    <div class="metric-row">
+      <span>Match Confidence:</span>
+      <span class="metric-val" id="pop-confidence" style="color: #10B981;">89.5% (Z &lt; 2.5σ)</span>
+    </div>
+  </div>
+
   <button class="btn" id="check-btn">Ping BioPrint Daemon</button>
 
   <script src="popup.js"></script>

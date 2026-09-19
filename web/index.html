@@ -70,7 +70,7 @@
         </div>
         <div class="enroll-progress-bar-wrap">
           <div class="enroll-steps-dots">
-            <div class="step-dot active" id="dot-motor"><span class="dot-num">1</span> Motor</div>
+            <div class="step-dot active" id="dot-motor"><span class="dot-num">1</span> Shapes Drag</div>
             <div class="step-line" id="line-1"></div>
             <div class="step-dot" id="dot-stroop"><span class="dot-num">2</span> Stroop</div>
             <div class="step-line" id="line-2"></div>
@@ -79,28 +79,109 @@
         </div>
       </div>
 
-      <!-- Step 1: Motor Kinematics & Fitts's Law Probe -->
+      <!-- Step 1: Drag-and-Drop Shape-in-the-Hole Calibration Probe -->
       <div class="calibration-card" id="card-motor">
         <div class="card-header">
           <div class="card-title">
             <span class="card-step-badge">PROBE 1/3</span>
-            <h2>Neuromuscular Motor Targets (Fitts's Law Calibration)</h2>
+            <h2>Interactive Shape-in-the-Hole (Drag Dynamics Calibration)</h2>
           </div>
           <p class="card-instructions">
-            Click the 3 illuminated calibration targets sequentially as quickly and naturally as possible. Measures cursor velocity, acceleration, jerk, tortuosity, and index of difficulty: <code>ID = log₂(2D/W)</code>.
+            Drag each of the <strong>3 glowing geometric shapes</strong> into its matching target outline hole. Measures initial drag latency, continuous drag velocity, trajectory directness ratio, hold duration, and drop release drift offset.
           </p>
         </div>
 
-        <div class="motor-stage-container">
+        <div class="motor-stage-container drag-game-container">
+          <!-- Real-Time Drag Telemetry HUD -->
           <div class="motor-telemetry-hud">
-            <div class="hud-item">Target: <span id="motor-target-idx" class="hud-val">1 / 3</span></div>
-            <div class="hud-item">Velocity: <span id="motor-vel-live" class="hud-val">0 px/s</span></div>
-            <div class="hud-item">Path Tortuosity: <span id="motor-tort-live" class="hud-val">1.00</span></div>
-            <div class="hud-item">Index of Difficulty: <span id="motor-id-live" class="hud-val">0.00 bits</span></div>
+            <div class="hud-item">Slotted: <span id="drag-slotted-count" class="hud-val">0 / 3</span></div>
+            <div class="hud-item">Drag Velocity: <span id="drag-vel-live" class="hud-val">0 px/s</span></div>
+            <div class="hud-item">Directness Ratio: <span id="drag-direct-live" class="hud-val">1.00</span></div>
+            <div class="hud-item">Drop Drift Error: <span id="drag-drift-live" class="hud-val">0.0 px</span></div>
           </div>
-          <canvas id="motor-canvas" width="840" height="340"></canvas>
-          <div id="motor-prompt-overlay" class="canvas-overlay-msg">
-            <span>Click Target 1 to Begin Motor Calibration</span>
+
+          <!-- Drag and Drop Interactive Arena -->
+          <div class="drag-arena" id="enroll-drag-arena">
+            <!-- Trajectory Overlay Canvas -->
+            <canvas id="drag-trajectory-canvas" class="drag-canvas-overlay"></canvas>
+
+            <!-- Draggable Shapes Dock -->
+            <div class="shapes-dock" id="enroll-shapes-dock">
+              <div class="dock-label">SOURCE SHAPES</div>
+              <div class="shapes-row">
+                <div class="draggable-shape shape-circle" id="shape-circle" data-shape="circle" data-target="slot-circle" touch-action="none">
+                  <svg viewBox="0 0 50 50" class="shape-svg">
+                    <circle cx="25" cy="25" r="21" fill="url(#grad-cyan)" stroke="#00F0FF" stroke-width="2"/>
+                  </svg>
+                  <span class="shape-text">Circle</span>
+                </div>
+
+                <div class="draggable-shape shape-square" id="shape-square" data-shape="square" data-target="slot-square" touch-action="none">
+                  <svg viewBox="0 0 50 50" class="shape-svg">
+                    <rect x="6" y="6" width="38" height="38" rx="6" fill="url(#grad-emerald)" stroke="#10B981" stroke-width="2"/>
+                  </svg>
+                  <span class="shape-text">Square</span>
+                </div>
+
+                <div class="draggable-shape shape-triangle" id="shape-triangle" data-shape="triangle" data-target="slot-triangle" touch-action="none">
+                  <svg viewBox="0 0 50 50" class="shape-svg">
+                    <polygon points="25,5 45,43 5,43" fill="url(#grad-amber)" stroke="#F59E0B" stroke-width="2"/>
+                  </svg>
+                  <span class="shape-text">Triangle</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Target Outline Holes -->
+            <div class="holes-dock" id="enroll-holes-dock">
+              <div class="dock-label">MATCHING TARGET SLOTS</div>
+              <div class="holes-row">
+                <div class="target-slot slot-circle" id="slot-circle" data-accept="circle">
+                  <div class="slot-outline">
+                    <svg viewBox="0 0 60 60" class="slot-svg">
+                      <circle cx="30" cy="30" r="23" fill="none" stroke="rgba(0, 240, 255, 0.45)" stroke-width="2" stroke-dasharray="4 3"/>
+                    </svg>
+                  </div>
+                  <span class="slot-label">Circle Slot</span>
+                </div>
+
+                <div class="target-slot slot-square" id="slot-square" data-accept="square">
+                  <div class="slot-outline">
+                    <svg viewBox="0 0 60 60" class="slot-svg">
+                      <rect x="8" y="8" width="44" height="44" rx="8" fill="none" stroke="rgba(16, 185, 129, 0.45)" stroke-width="2" stroke-dasharray="4 3"/>
+                    </svg>
+                  </div>
+                  <span class="slot-label">Square Slot</span>
+                </div>
+
+                <div class="target-slot slot-triangle" id="slot-triangle" data-accept="triangle">
+                  <div class="slot-outline">
+                    <svg viewBox="0 0 60 60" class="slot-svg">
+                      <polygon points="30,6 54,49 6,49" fill="none" stroke="rgba(245, 158, 11, 0.45)" stroke-width="2" stroke-dasharray="4 3"/>
+                    </svg>
+                  </div>
+                  <span class="slot-label">Triangle Slot</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Subtle SVG Gradients Definition -->
+            <svg style="position: absolute; width: 0; height: 0; pointer-events: none;">
+              <defs>
+                <linearGradient id="grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.85"/>
+                  <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.6"/>
+                </linearGradient>
+                <linearGradient id="grad-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#10B981" stop-opacity="0.85"/>
+                  <stop offset="100%" stop-color="#059669" stop-opacity="0.6"/>
+                </linearGradient>
+                <linearGradient id="grad-amber" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.85"/>
+                  <stop offset="100%" stop-color="#D97706" stop-opacity="0.6"/>
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
         </div>
       </div>
@@ -239,26 +320,54 @@
               <input type="password" id="login-password" class="cyber-input" placeholder="Enter 'bioprint secure authentication'..." autocomplete="off" required>
             </div>
 
-            <div class="dynamic-target-container" id="target-button-arena">
-              <button type="submit" id="login-btn" class="btn btn-primary btn-dynamic" data-bioprint-submit="true">
-                <span class="btn-icon">🔒</span>
-                <span class="btn-text">Sign In (Guarded)</span>
-              </button>
+            <!-- Interactive Single Shape Drag-to-Unlock / Submit Arena -->
+            <div class="login-drag-submission-area" id="login-drag-arena">
+              <div class="drag-arena-header">
+                <span class="arena-title">BEHAVIORAL UNLOCK GESTURE</span>
+                <span class="arena-hint">Drag Security Token into Target Hole to Authenticate</span>
+              </div>
+
+              <!-- Trajectory Canvas Overlay for Login Drag -->
+              <canvas id="login-drag-canvas" class="login-drag-overlay"></canvas>
+
+              <div class="login-drag-track">
+                <!-- Draggable Token (Source) -->
+                <div class="draggable-token-container">
+                  <div class="draggable-shape token-shape" id="login-token" data-shape="token" data-target="login-target-hole" touch-action="none">
+                    <div class="token-core">
+                      <span class="token-glyph">🛡️</span>
+                      <span class="token-label">DRAG ME</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Guidance Rail Graphic -->
+                <div class="drag-rail-guide">
+                  <div class="guide-dots"></div>
+                  <span class="guide-arrow">➔ ➔ ➔</span>
+                </div>
+
+                <!-- Target Outline Hole (Destination) -->
+                <div class="login-target-hole" id="login-target-hole" data-accept="token">
+                  <div class="hole-core">
+                    <span class="hole-glyph">🔓</span>
+                    <span class="hole-label">DROP HOLE</span>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            <!-- Fallback Hidden Native Button for Standard Submissions -->
+            <button type="submit" id="login-btn" style="display: none;" data-bioprint-submit="true">Submit</button>
           </form>
 
           <div class="target-controls-row">
             <label class="toggle-control">
-              <input type="checkbox" id="toggle-two-click" checked>
-              <span class="toggle-slider"></span>
-              <span class="toggle-label">2-Click Motor Confirmation</span>
-            </label>
-            <label class="toggle-control">
               <input type="checkbox" id="toggle-dynamic-pos" checked>
               <span class="toggle-slider"></span>
-              <span class="toggle-label">Dynamic Target Repositioning</span>
+              <span class="toggle-label">Dynamic Target Hole Offset</span>
             </label>
-            <button class="btn-text-only" id="btn-reposition">Reposition</button>
+            <button class="btn-text-only" id="btn-reposition">Reposition Hole</button>
           </div>
         </div>
 
@@ -355,6 +464,16 @@
               </div>
               <div class="meter-bar-track">
                 <div class="meter-bar-fill" id="meter-key-fill" style="width: 89%;"></div>
+              </div>
+            </div>
+
+            <div class="meter-item">
+              <div class="meter-labels">
+                <span>Drag Dynamics Match</span>
+                <span id="signal-drag-val" class="meter-pct">91%</span>
+              </div>
+              <div class="meter-bar-track">
+                <div class="meter-bar-fill" id="meter-drag-fill" style="width: 91%;"></div>
               </div>
             </div>
 

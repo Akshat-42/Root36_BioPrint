@@ -116,16 +116,19 @@ def enroll_user(request: EnrollmentRequest, db: Session = Depends(get_db)):
             "mean_velocity_px_s": motor_base["mean_velocity"],
             "mean_tortuosity": motor_base["mean_tortuosity"],
             "fitts_law_fit": f"MT = {motor_base['fitts_a']} + {motor_base['fitts_b']} * ID",
+            "drag_dynamics": motor_base.get("drag_dynamics", {}),
             "stroop_mean_reaction_ms": cog_base["mean_reaction_ms"]
         }
     )
 
 
+@app.post("/api/authenticate", response_model=VerificationResponse, summary="Authenticate via Drag-and-Drop & Keystroke Biometrics")
 @app.post("/api/verify", response_model=VerificationResponse, summary="Verify Behavioral Biometrics")
 def verify_login(request: VerificationRequest, db: Session = Depends(get_db)):
     """
-    Evaluates a single login interaction vector against the user's enrolled baseline.
-    Executes bot heuristics, transition Z-scores, mouse kinematics, and returns
+    Evaluates a single login interaction vector (drag gesture and/or keystrokes)
+    against the user's enrolled baseline.
+    Executes bot heuristics, transition Z-scores, drag kinematics, and returns
     an authentication verdict with sub-50ms latency and diagnostic explainability.
     """
     user = db.query(UserRecord).filter(UserRecord.user_id == request.user_id).first()
@@ -139,6 +142,7 @@ def verify_login(request: VerificationRequest, db: Session = Depends(get_db)):
                 "bot_detected": False,
                 "keystroke_rhythm_match": 0.0,
                 "motor_kinematics_match": 0.0,
+                "drag_dynamics_match": 0.0,
                 "cognitive_delay_match": 0.0
             },
             explainability_reasons=[
@@ -153,12 +157,27 @@ def verify_login(request: VerificationRequest, db: Session = Depends(get_db)):
         "cognitive_baseline": json.loads(user.baseline.cognitive_baseline_json)
     }
 
+    # Consolidate single drag_gesture or list of drag_gestures without duplicates
+    drags = []
+    seen_drags = set()
+    for d in (request.drag_gestures or []):
+        key = (d.shape_type, round(d.start_time, 2), round(d.drop_time, 2))
+        if key not in seen_drags:
+            seen_drags.add(key)
+            drags.append(d)
+    if request.drag_gesture:
+        key = (request.drag_gesture.shape_type, round(request.drag_gesture.start_time, 2), round(request.drag_gesture.drop_time, 2))
+        if key not in seen_drags:
+            seen_drags.add(key)
+            drags.append(request.drag_gesture)
+
     # Run verification pipeline
     verdict = BiometricsEngine.verify(
         keystrokes=request.keystrokes,
         mouse_events=request.mouse_events,
         baseline_profile=baseline_profile,
-        button_context=request.button_context
+        button_context=request.button_context,
+        drag_gestures=drags
     )
 
     # Persist audit record in background

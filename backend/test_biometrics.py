@@ -10,6 +10,7 @@ from backend.models import (
     KeystrokeEvent,
     MouseEvent,
     MotorTargetEvent,
+    DragGestureEvent,
     StroopTrialEvent,
     EnrollmentSample,
 )
@@ -233,10 +234,105 @@ def test_latency_benchmark():
     print(" -> PASS: Latency benchmark well within <50ms constraint.\n")
 
 
+def test_drag_and_drop_biometrics():
+    print("[TEST 5] Testing Drag-and-Drop Gesture Baseline & Mini-Game Verification...")
+    passphrase = "bioprint secure"
+
+    # 1. Build samples with multi-shape drag gestures (Circle, Square, Triangle)
+    samples = []
+    shapes = ["circle", "square", "triangle"]
+    for idx in range(3):
+        ks = generate_mock_keystrokes(passphrase, base_dwell=94.0, base_flight=112.0)
+        drags = []
+        for s_idx, shape in enumerate(shapes):
+            drag_traj = generate_curved_mouse_trajectory(
+                start=(100 + s_idx * 50, 100),
+                end=(400 + s_idx * 50, 300),
+                steps=20,
+                duration_ms=420.0 + idx * 10
+            )
+            drags.append(DragGestureEvent(
+                shape_type=shape,
+                start_time=100.0,
+                drop_time=520.0 + idx * 10,
+                initial_drag_latency=220.0 + idx * 15,
+                hold_duration=420.0 + idx * 10,
+                drag_velocity_mean=460.0 + idx * 8,
+                drag_velocity_std=90.0,
+                trajectory_directness_ratio=0.89,
+                drop_drift_offset=6.5 + idx * 0.5,
+                trajectory=drag_traj
+            ))
+        samples.append(EnrollmentSample(
+            sample_index=idx,
+            keystrokes=ks,
+            drag_gestures=drags
+        ))
+
+    key_base, motor_base, cog_base = BiometricsEngine.compile_baseline(samples)
+    baseline_profile = {
+        "keystroke_baseline": key_base,
+        "motor_baseline": motor_base,
+        "cognitive_baseline": cog_base
+    }
+
+    assert "drag_dynamics" in motor_base
+    drag_base = motor_base["drag_dynamics"]
+    print(f" -> Enrolled Drag Baseline: Mean Velocity={drag_base['drag_velocity_mean']}px/s, Directness={drag_base['trajectory_directness_mean']}, Drift={drag_base['drop_drift_offset_mean']}px")
+
+    # 2. Legitimate Single Shape Drag Verification (e.g. Login Token)
+    legit_token_traj = generate_curved_mouse_trajectory(start=(150, 200), end=(450, 200), steps=22, duration_ms=430.0)
+    legit_drag = DragGestureEvent(
+        shape_type="token",
+        start_time=200.0,
+        drop_time=630.0,
+        initial_drag_latency=230.0,
+        hold_duration=430.0,
+        drag_velocity_mean=465.0,
+        drag_velocity_std=92.0,
+        trajectory_directness_ratio=0.90,
+        drop_drift_offset=7.0,
+        trajectory=legit_token_traj
+    )
+    legit_ks = generate_mock_keystrokes(passphrase, base_dwell=95.0, base_flight=114.0)
+
+    resp = BiometricsEngine.verify(
+        keystrokes=legit_ks,
+        mouse_events=[],
+        baseline_profile=baseline_profile,
+        drag_gestures=[legit_drag]
+    )
+
+    print(f" -> Legit Drag Response: Authenticated={resp.authenticated}, Score={resp.confidence_score}, DragMatch={resp.signals.drag_dynamics_match}%")
+    assert resp.authenticated is True, f"Legitimate drag was rejected! Score: {resp.confidence_score}"
+    assert resp.signals.drag_dynamics_match >= 75.0, f"Expected drag match >= 75%, got {resp.signals.drag_dynamics_match}%"
+
+    # 3. Teleportation Bot Drag Detection (<15ms duration)
+    teleport_drag = DragGestureEvent(
+        shape_type="token",
+        start_time=100.0,
+        drop_time=105.0, # 5ms duration!
+        hold_duration=5.0,
+        drag_velocity_mean=8000.0,
+        drop_drift_offset=0.0,
+        trajectory=[MouseEvent(x=100, y=200, t=100.0, is_trusted=True), MouseEvent(x=500, y=200, t=105.0, is_trusted=True)]
+    )
+    resp_teleport = BiometricsEngine.verify(
+        keystrokes=legit_ks,
+        mouse_events=[],
+        baseline_profile=baseline_profile,
+        drag_gestures=[teleport_drag]
+    )
+    assert resp_teleport.signals.bot_detected is True
+    assert any("teleportation" in r.lower() for r in resp_teleport.explainability_reasons)
+    print(" -> PASS: Instant drag teleportation flagged bot successfully.\n")
+
+
 if __name__ == "__main__":
     print("=== RUNNING BIOPRINT BIOMETRICS VERIFICATION TESTS ===")
     test_baseline_and_verification()
     test_impostor_keystroke_rejection()
     test_bot_detection_heuristics()
     test_latency_benchmark()
+    test_drag_and_drop_biometrics()
     print("=== ALL BIOPRINT BACKEND UNIT TESTS PASSED SUCCESSFULLY! ===")

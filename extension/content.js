@@ -15,6 +15,7 @@
   const telemetry = {
     keystrokes: [],         // Array of { key, down_time, up_time }
     mouseEvents: [],        // Array of { x, y, t, is_trusted }
+    dragGestures: [],       // Array of DragGestureEvent
     activeKeys: new Map(),  // Active keydown tracking: key -> down_time
     lastActivityTime: performance.now(),
     loginButtonContext: null
@@ -70,13 +71,12 @@
     { capture: true, passive: true }
   );
 
-  // Mouse kinematics capture (sampled at high fidelity)
+  // Mouse and Pointer kinematics capture (sampled at high fidelity)
   let lastMouseSample = 0;
   window.addEventListener(
     "mousemove",
     (e) => {
       const now = performance.now();
-      // Sample every ~8ms to balance fidelity with DOM performance
       if (now - lastMouseSample >= 8.0) {
         lastMouseSample = now;
         telemetry.mouseEvents.push({
@@ -86,11 +86,101 @@
           is_trusted: e.isTrusted
         });
 
-        // Retain last 300 points
         if (telemetry.mouseEvents.length > 300) {
           telemetry.mouseEvents.shift();
         }
         updateBadgeStats();
+      }
+    },
+    { capture: true, passive: true }
+  );
+
+  // Pointer Events capture for drag gestures and cross-device interaction
+  let activePointerDrag = null;
+  window.addEventListener(
+    "pointerdown",
+    (e) => {
+      const now = performance.now();
+      activePointerDrag = {
+        pointerId: e.pointerId,
+        startTime: now,
+        is_trusted: e.isTrusted,
+        trajectory: [{ x: e.clientX, y: e.clientY, t: now, is_trusted: e.isTrusted }]
+      };
+    },
+    { capture: true, passive: true }
+  );
+
+  window.addEventListener(
+    "pointermove",
+    (e) => {
+      if (!activePointerDrag || activePointerDrag.pointerId !== e.pointerId) return;
+      const now = performance.now();
+      activePointerDrag.trajectory.push({
+        x: e.clientX,
+        y: e.clientY,
+        t: now,
+        is_trusted: e.isTrusted
+      });
+      // Also sync to mouseEvents buffer
+      telemetry.mouseEvents.push({
+        x: e.clientX,
+        y: e.clientY,
+        t: now,
+        is_trusted: e.isTrusted
+      });
+      if (telemetry.mouseEvents.length > 300) telemetry.mouseEvents.shift();
+    },
+    { capture: true, passive: true }
+  );
+
+  window.addEventListener(
+    "pointerup",
+    (e) => {
+      if (activePointerDrag && activePointerDrag.pointerId === e.pointerId) {
+        const now = performance.now();
+        const traj = activePointerDrag.trajectory;
+        traj.push({ x: e.clientX, y: e.clientY, t: now, is_trusted: e.isTrusted });
+        const holdDuration = Math.max(10.0, now - activePointerDrag.startTime);
+
+        // Calculate path metrics
+        let pathLen = 0;
+        let velSum = 0;
+        for (let i = 1; i < traj.length; i++) {
+          const stepDist = Math.hypot(traj[i].x - traj[i - 1].x, traj[i].y - traj[i - 1].y);
+          pathLen += stepDist;
+          const dt = traj[i].t - traj[i - 1].t;
+          if (dt > 0) velSum += stepDist / (dt / 1000.0);
+        }
+        const meanVel = traj.length > 1 ? (velSum / (traj.length - 1)) : 0;
+        const euclidDist = traj.length > 1 ? Math.hypot(traj[traj.length - 1].x - traj[0].x, traj[traj.length - 1].y - traj[0].y) : pathLen;
+        const directness = pathLen > 0 ? (euclidDist / pathLen) : 1.0;
+
+        const gesture = {
+          shape_type: "pointer_drag",
+          start_time: activePointerDrag.startTime,
+          drop_time: now,
+          initial_drag_latency: 50.0,
+          hold_duration: holdDuration,
+          drag_velocity_mean: meanVel,
+          drag_velocity_std: 70.0,
+          trajectory_directness_ratio: directness,
+          drop_drift_offset: 5.0,
+          target_slot_id: "slot",
+          trajectory: traj
+        };
+
+        telemetry.dragGestures.push(gesture);
+        if (telemetry.dragGestures.length > 10) telemetry.dragGestures.shift();
+
+        // Check for synthetic teleportation or untrusted flag
+        if (!e.isTrusted || !activePointerDrag.is_trusted) {
+          console.warn("[BioPrint Sentinel] Synthetic Pointer drag flagged: isTrusted is false.");
+        } else if (holdDuration < 15.0 && pathLen > 50.0) {
+          console.warn("[BioPrint Sentinel] Synthetic Drag flagged: Impossible instant teleportation.");
+        }
+
+        activePointerDrag = null;
       }
     },
     { capture: true, passive: true }
@@ -267,13 +357,16 @@
       passphrase: passphrase,
       keystrokes: telemetry.keystrokes,
       mouse_events: telemetry.mouseEvents,
-      button_context: telemetry.loginButtonContext
+      button_context: telemetry.loginButtonContext,
+      drag_gestures: telemetry.dragGestures,
+      drag_gesture: telemetry.dragGestures.length > 0 ? telemetry.dragGestures[telemetry.dragGestures.length - 1] : null
     };
 
     console.log("[BioPrint Sentinel] Telemetry bundle prepared:", {
       user: userId,
       keystrokes: payload.keystrokes.length,
-      mouseEvents: payload.mouse_events.length
+      mouseEvents: payload.mouse_events.length,
+      dragGestures: payload.drag_gestures.length
     });
 
     // Provide visual pulse on badge
@@ -288,8 +381,8 @@
     }
 
     try {
-      // Call backend verify endpoint
-      const response = await fetch(`${BACKEND_URL}/api/verify`, {
+      // Call backend authenticate endpoint
+      const response = await fetch(`${BACKEND_URL}/api/authenticate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)

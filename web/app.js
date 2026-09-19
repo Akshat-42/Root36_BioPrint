@@ -16,16 +16,16 @@ const state = {
 
   // Calibration State
   calibration: {
-    step: "motor", // 'motor' | 'stroop' | 'typing' | 'complete'
-    motorTargets: [
-      { id: 1, x: 140, y: 170, radius: 28 },
-      { id: 2, x: 680, y: 90,  radius: 20 },
-      { id: 3, x: 420, y: 260, radius: 24 }
+    step: "drag", // 'drag' | 'stroop' | 'typing' | 'complete'
+    shapes: [
+      { id: "circle", name: "Circle", targetSlot: "slot-circle", slotted: false },
+      { id: "square", name: "Square", targetSlot: "slot-square", slotted: false },
+      { id: "triangle", name: "Triangle", targetSlot: "slot-triangle", slotted: false }
     ],
-    currentTargetIdx: 0,
-    targetStartTime: 0,
-    recordedTargets: [],
-    mouseTrail: [],
+    slottedCount: 0,
+    renderStartTime: 0,
+    recordedDrags: [],
+    currentDragTrajectory: [],
 
     // Stroop State
     stroopTrials: [
@@ -50,11 +50,10 @@ const state = {
     keystrokes: [],
     mouseEvents: [],
     activeKeys: new Map(),
-    targetContext: null,
     formStartTime: 0,
-    clickStep: 0,
-    firstClickTime: 0,
-    firstClickPos: null
+    tokenRenderTime: 0,
+    lastDragGesture: null,
+    currentDragTrajectory: []
   }
 };
 
@@ -64,10 +63,10 @@ const state = {
 
 document.addEventListener("DOMContentLoaded", () => {
   initNavigation();
-  initMotorCalibration();
+  initShapeDragEnrollment();
   initStroopProbe();
   initTypingEnrollment();
-  initLoginDashboard();
+  initLoginDragSubmission();
   initAttackSimulator();
   checkDaemonHealth();
 
@@ -130,240 +129,284 @@ function initNavigation() {
 }
 
 // =============================================================================
-// STEP 1: Motor Kinematics & Fitts's Law Probe
+// STEP 1: Multi-Shape Drag-and-Drop Calibration (Shape-in-the-Hole)
 // =============================================================================
 
-function initMotorCalibration() {
-  const canvas = document.getElementById("motor-canvas");
-  if (!canvas) return;
+function initShapeDragEnrollment() {
+  const arena = document.getElementById("enroll-drag-arena");
+  const canvas = document.getElementById("drag-trajectory-canvas");
+  if (!arena || !canvas) return;
+
   const ctx = canvas.getContext("2d");
-  const promptOverlay = document.getElementById("motor-prompt-overlay");
+  const shapes = document.querySelectorAll(".draggable-shape[data-target^='slot-']");
+  const slots = document.querySelectorAll(".target-slot[data-accept]");
 
-  let isCollecting = false;
-  let lastX = 0, lastY = 0;
-  let hitEffects = []; // Visual ripple effects on target hit
+  let activeDrag = null; // { element, shapeType, pointerId, startX, startY, origX, origY, startTime, trajectory: [] }
 
-  function updateTargets() {
-    const w = canvas.width || 840;
-    const h = canvas.height || 340;
-    state.calibration.motorTargets = [
-      { id: 1, x: Math.round(w * 0.18), y: Math.round(h * 0.50), radius: 28 },
-      { id: 2, x: Math.round(w * 0.82), y: Math.round(h * 0.30), radius: 22 },
-      { id: 3, x: Math.round(w * 0.50), y: Math.round(h * 0.74), radius: 25 }
-    ];
+  function resizeOverlay() {
+    const rect = arena.getBoundingClientRect();
+    canvas.width = Math.round(rect.width);
+    canvas.height = Math.round(rect.height);
+    renderTrajectory();
   }
 
-  function resizeCanvas() {
-    const rect = canvas.getBoundingClientRect();
-    const w = rect.width > 0 ? rect.width : (canvas.parentElement?.clientWidth || 840);
-    const h = rect.height > 0 ? rect.height : 340;
-    canvas.width = Math.round(w);
-    canvas.height = Math.round(h);
-    updateTargets();
-    renderStage();
-  }
+  resizeOverlay();
+  window.addEventListener("resize", resizeOverlay);
+  document.getElementById("tab-enroll")?.addEventListener("click", () => setTimeout(resizeOverlay, 80));
 
-  // Initial resize and listeners
-  resizeCanvas();
-  setTimeout(resizeCanvas, 100);
-  window.addEventListener("resize", resizeCanvas);
+  state.calibration.renderStartTime = performance.now();
 
-  function renderStage() {
+  function renderTrajectory() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw subtle coordinate grid
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
-    ctx.lineWidth = 1;
-    for (let x = 0; x < canvas.width; x += 40) {
+    // Draw all recorded drag paths in cyan/emerald
+    state.calibration.recordedDrags.forEach((drag, dIdx) => {
+      const traj = drag.trajectory || [];
+      if (traj.length < 2) return;
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    }
-    for (let y = 0; y < canvas.height; y += 40) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    }
-
-    // Draw Trajectory Trail
-    if (state.calibration.mouseTrail.length > 1) {
-      ctx.beginPath();
-      ctx.moveTo(state.calibration.mouseTrail[0].x, state.calibration.mouseTrail[0].y);
-      for (let i = 1; i < state.calibration.mouseTrail.length; i++) {
-        ctx.lineTo(state.calibration.mouseTrail[i].x, state.calibration.mouseTrail[i].y);
+      ctx.moveTo(traj[0].x, traj[0].y);
+      for (let i = 1; i < traj.length; i++) {
+        ctx.lineTo(traj[i].x, traj[i].y);
       }
-      ctx.strokeStyle = "rgba(0, 240, 255, 0.65)";
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.4)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+
+    // Draw current active drag trajectory with glow
+    if (activeDrag && activeDrag.trajectory.length > 1) {
+      const traj = activeDrag.trajectory;
+      ctx.beginPath();
+      ctx.moveTo(traj[0].x, traj[0].y);
+      for (let i = 1; i < traj.length; i++) {
+        ctx.lineTo(traj[i].x, traj[i].y);
+      }
+      ctx.strokeStyle = "#00F0FF";
+      ctx.lineWidth = 3;
       ctx.shadowColor = "#00F0FF";
       ctx.shadowBlur = 10;
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
-
-    // Draw Hit Ripples
-    hitEffects.forEach((eff) => {
-      ctx.beginPath();
-      ctx.arc(eff.x, eff.y, eff.r, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(16, 185, 129, ${eff.opacity})`;
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      eff.r += 2;
-      eff.opacity -= 0.05;
-    });
-    hitEffects = hitEffects.filter((eff) => eff.opacity > 0);
-
-    // Draw Current Target
-    const target = state.calibration.motorTargets[state.calibration.currentTargetIdx];
-    if (target) {
-      // Outer pulse ring
-      ctx.beginPath();
-      ctx.arc(target.x, target.y, target.radius + 8, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(0, 240, 255, 0.4)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Inner target circle
-      ctx.beginPath();
-      ctx.arc(target.x, target.y, target.radius, 0, Math.PI * 2);
-      const gradient = ctx.createRadialGradient(target.x, target.y, 2, target.x, target.y, target.radius);
-      gradient.addColorStop(0, "#00F0FF");
-      gradient.addColorStop(1, "rgba(0, 150, 255, 0.75)");
-      ctx.fillStyle = gradient;
-      ctx.shadowColor = "#00F0FF";
-      ctx.shadowBlur = 16;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // Target Label
-      ctx.fillStyle = "#070B14";
-      ctx.font = "bold 13px 'JetBrains Mono', monospace";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(`T${target.id}`, target.x, target.y);
-    }
   }
 
-  canvas.addEventListener("mousemove", (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
-    const now = performance.now();
+  // Pointer Event Handlers for Draggable Shapes
+  shapes.forEach((shapeEl) => {
+    shapeEl.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      const shapeType = shapeEl.getAttribute("data-shape");
+      const shapeState = state.calibration.shapes.find(s => s.id === shapeType);
+      if (shapeState && shapeState.slotted) return; // already slotted
 
-    // Hover cursor feedback over target
-    const target = state.calibration.motorTargets[state.calibration.currentTargetIdx];
-    if (target) {
-      const dist = Math.hypot(x - target.x, y - target.y);
-      canvas.style.cursor = dist <= target.radius + 12 ? "pointer" : "crosshair";
-    }
+      const now = performance.now();
+      const arenaRect = arena.getBoundingClientRect();
+      const elRect = shapeEl.getBoundingClientRect();
 
-    // Always capture mouse trail once calibration is mounted
-    state.calibration.mouseTrail.push({ x, y, t: now, is_trusted: e.isTrusted });
-    if (state.calibration.mouseTrail.length > 300) {
-      state.calibration.mouseTrail.shift();
-    }
+      // Capture pointer for cross-device support (mouse, trackpad, touchscreen)
+      shapeEl.setPointerCapture(e.pointerId);
+      shapeEl.classList.add("is-dragging");
 
-    if (!state.calibration.targetStartTime) {
-      state.calibration.targetStartTime = now;
-    }
+      const initLatency = Math.max(20.0, now - state.calibration.renderStartTime);
 
-    // Compute live velocity HUD
-    const dt = now - (state.calibration.mouseTrail[state.calibration.mouseTrail.length - 2]?.t || (now - 16));
-    const dist = Math.hypot(x - lastX, y - lastY);
-    const vel = dt > 0 ? (dist / (dt / 1000.0)) : 0;
+      activeDrag = {
+        element: shapeEl,
+        shapeType: shapeType,
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        elStartX: elRect.left - arenaRect.left,
+        elStartY: elRect.top - arenaRect.top,
+        origTransform: shapeEl.style.transform || "none",
+        startTime: now,
+        initialLatency: initLatency,
+        trajectory: [{
+          x: e.clientX - arenaRect.left,
+          y: e.clientY - arenaRect.top,
+          t: now,
+          is_trusted: e.isTrusted
+        }]
+      };
 
-    const velElem = document.getElementById("motor-vel-live");
-    if (velElem) velElem.textContent = `${Math.round(vel)} px/s`;
+      renderTrajectory();
+    });
 
-    lastX = x;
-    lastY = y;
-    renderStage();
-  });
+    shapeEl.addEventListener("pointermove", (e) => {
+      if (!activeDrag || activeDrag.pointerId !== e.pointerId) return;
+      e.preventDefault();
 
-  canvas.addEventListener("click", (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const clickX = (e.clientX - rect.left) * scaleX;
-    const clickY = (e.clientY - rect.top) * scaleY;
-    const now = performance.now();
+      const now = performance.now();
+      const arenaRect = arena.getBoundingClientRect();
+      const curX = e.clientX - arenaRect.left;
+      const curY = e.clientY - arenaRect.top;
 
-    const target = state.calibration.motorTargets[state.calibration.currentTargetIdx];
-    if (!target) return;
+      // Translate element directly following pointer delta
+      const dx = e.clientX - activeDrag.startX;
+      const dy = e.clientY - activeDrag.startY;
+      activeDrag.element.style.transform = `translate(${dx}px, ${dy}px) scale(1.12)`;
 
-    const distFromCenter = Math.hypot(clickX - target.x, clickY - target.y);
+      activeDrag.trajectory.push({
+        x: curX,
+        y: curY,
+        t: now,
+        is_trusted: e.isTrusted
+      });
 
-    // Generous hit tolerance (+12px) for frictionless user feedback
-    if (distFromCenter <= target.radius + 12) {
-      // Hit registered!
-      if (!isCollecting) {
-        isCollecting = true;
-        if (promptOverlay) {
-          promptOverlay.style.opacity = "0";
-          setTimeout(() => { promptOverlay.style.display = "none"; }, 300);
+      // Live metrics HUD computation
+      if (activeDrag.trajectory.length >= 2) {
+        const p1 = activeDrag.trajectory[0];
+        const pLast = activeDrag.trajectory[activeDrag.trajectory.length - 1];
+        const pPrev = activeDrag.trajectory[activeDrag.trajectory.length - 2];
+        const dt = now - pPrev.t;
+        const dDist = Math.hypot(pLast.x - pPrev.x, pLast.y - pPrev.y);
+        const liveVel = dt > 0 ? (dDist / (dt / 1000.0)) : 0;
+
+        const euclidDist = Math.hypot(pLast.x - p1.x, pLast.y - p1.y);
+        let pathLen = 0;
+        for (let i = 1; i < activeDrag.trajectory.length; i++) {
+          pathLen += Math.hypot(
+            activeDrag.trajectory[i].x - activeDrag.trajectory[i - 1].x,
+            activeDrag.trajectory[i].y - activeDrag.trajectory[i - 1].y
+          );
+        }
+        const directness = pathLen > 0 ? Math.min(1.0, euclidDist / pathLen) : 1.0;
+
+        document.getElementById("drag-vel-live").textContent = `${Math.round(liveVel)} px/s`;
+        document.getElementById("drag-direct-live").textContent = directness.toFixed(2);
+      }
+
+      // Check slot hover states
+      slots.forEach((slot) => {
+        const slotRect = slot.getBoundingClientRect();
+        const pointerInSlot = (
+          e.clientX >= slotRect.left &&
+          e.clientX <= slotRect.right &&
+          e.clientY >= slotRect.top &&
+          e.clientY <= slotRect.bottom
+        );
+        if (pointerInSlot) {
+          slot.classList.add("slot-hover-active");
+        } else {
+          slot.classList.remove("slot-hover-active");
+        }
+      });
+
+      renderTrajectory();
+    });
+
+    shapeEl.addEventListener("pointerup", (e) => {
+      if (!activeDrag || activeDrag.pointerId !== e.pointerId) return;
+      e.preventDefault();
+
+      try { shapeEl.releasePointerCapture(e.pointerId); } catch (err) {}
+      shapeEl.classList.remove("is-dragging");
+
+      const now = performance.now();
+      const dropX = e.clientX;
+      const dropY = e.clientY;
+
+      // Find matching target slot
+      const targetSlotId = shapeEl.getAttribute("data-target");
+      const targetSlot = document.getElementById(targetSlotId);
+      let isSuccess = false;
+      let driftOffset = 0.0;
+
+      if (targetSlot) {
+        const slotRect = targetSlot.getBoundingClientRect();
+        const slotCenterX = slotRect.left + slotRect.width / 2;
+        const slotCenterY = slotRect.top + slotRect.height / 2;
+        driftOffset = Math.hypot(dropX - slotCenterX, dropY - slotCenterY);
+
+        // Tolerant landing radius: 55px from center
+        if (driftOffset <= 55.0) {
+          isSuccess = true;
+          targetSlot.classList.remove("slot-hover-active");
+          targetSlot.classList.add("slot-filled");
+          shapeEl.classList.add("slotted");
+
+          // Snap visually into the center of the slot
+          const arenaRect = arena.getBoundingClientRect();
+          const targetRelX = slotCenterX - arenaRect.left - (activeDrag.element.offsetWidth / 2);
+          const targetRelY = slotCenterY - arenaRect.top - (activeDrag.element.offsetHeight / 2);
+          const snapDx = targetRelX - activeDrag.elStartX;
+          const snapDy = targetRelY - activeDrag.elStartY;
+          shapeEl.style.transform = `translate(${snapDx}px, ${snapDy}px) scale(0.95)`;
+
+          // Mark shape as slotted
+          const shapeState = state.calibration.shapes.find(s => s.id === activeDrag.shapeType);
+          if (shapeState) shapeState.slotted = true;
+          state.calibration.slottedCount++;
+
+          document.getElementById("drag-slotted-count").textContent = `${state.calibration.slottedCount} / 3`;
+          document.getElementById("drag-drift-live").textContent = `${driftOffset.toFixed(1)} px`;
+
+          // Calculate summary metrics for the drag
+          const traj = activeDrag.trajectory;
+          const holdDur = Math.max(40.0, now - activeDrag.startTime);
+          let pathLen = 0;
+          let velSum = 0;
+          for (let i = 1; i < traj.length; i++) {
+            const stepDist = Math.hypot(traj[i].x - traj[i - 1].x, traj[i].y - traj[i - 1].y);
+            pathLen += stepDist;
+            const dt = traj[i].t - traj[i - 1].t;
+            if (dt > 0) velSum += stepDist / (dt / 1000.0);
+          }
+          const meanVel = traj.length > 1 ? (velSum / (traj.length - 1)) : 420.0;
+          const euclidDist = traj.length > 1 ? Math.hypot(traj[traj.length - 1].x - traj[0].x, traj[traj.length - 1].y - traj[0].y) : pathLen;
+          const directness = pathLen > 0 ? (euclidDist / pathLen) : 1.0;
+
+          // Record Drag Gesture Event
+          state.calibration.recordedDrags.push({
+            shape_type: activeDrag.shapeType,
+            start_time: activeDrag.startTime,
+            drop_time: now,
+            initial_drag_latency: activeDrag.initialLatency,
+            hold_duration: holdDur,
+            drag_velocity_mean: meanVel,
+            drag_velocity_std: 85.0,
+            trajectory_directness_ratio: directness,
+            drop_drift_offset: driftOffset,
+            target_slot_id: targetSlotId,
+            trajectory: traj
+          });
+
+          // Check if all 3 shapes are slotted!
+          if (state.calibration.slottedCount >= 3) {
+            setTimeout(() => {
+              // Advance to Step 2: Stroop Probe
+              document.getElementById("dot-motor").classList.remove("active");
+              document.getElementById("dot-motor").classList.add("completed");
+              document.getElementById("line-1").style.background = "#10B981";
+              document.getElementById("dot-stroop").classList.add("active");
+
+              document.getElementById("card-motor").classList.add("hidden-card");
+              document.getElementById("card-stroop").classList.remove("hidden-card");
+              startStroopTrial(0);
+            }, 600);
+          }
         }
       }
 
-      // Visual hit feedback
-      hitEffects.push({ x: target.x, y: target.y, r: target.radius, opacity: 1.0 });
-
-      const startTime = state.calibration.targetStartTime || (now - 350);
-      const movementTime = Math.max(50.0, now - startTime);
-
-      const prevX = state.calibration.currentTargetIdx === 0
-        ? (canvas.width * 0.05)
-        : state.calibration.motorTargets[state.calibration.currentTargetIdx - 1].x;
-      const prevY = state.calibration.currentTargetIdx === 0
-        ? (canvas.height * 0.05)
-        : state.calibration.motorTargets[state.calibration.currentTargetIdx - 1].y;
-
-      const targetDist = Math.hypot(target.x - prevX, target.y - prevY);
-      const targetWidth = target.radius * 2;
-      const indexDiff = Math.log2((2.0 * Math.max(10, targetDist)) / targetWidth);
-
-      state.calibration.recordedTargets.push({
-        target_id: target.id,
-        start_t: startTime,
-        click_t: now,
-        distance: targetDist,
-        width: targetWidth,
-        overshoot: distFromCenter,
-        trajectory: state.calibration.mouseTrail.slice(-50)
-      });
-
-      // Update live HUD
-      document.getElementById("motor-id-live").textContent = `${indexDiff.toFixed(2)} bits`;
-      document.getElementById("motor-tort-live").textContent = (1.05 + (distFromCenter / 50)).toFixed(2);
-
-      state.calibration.currentTargetIdx++;
-      state.calibration.targetStartTime = performance.now();
-
-      if (state.calibration.currentTargetIdx < state.calibration.motorTargets.length) {
-        document.getElementById("motor-target-idx").textContent = `${state.calibration.currentTargetIdx + 1} / 3`;
-        renderStage();
-      } else {
-        // Motor test complete -> advance to Stroop
-        document.getElementById("dot-motor").classList.remove("active");
-        document.getElementById("dot-motor").classList.add("completed");
-        document.getElementById("line-1").style.background = "#10B981";
-        document.getElementById("dot-stroop").classList.add("active");
-
-        document.getElementById("card-motor").classList.add("hidden-card");
-        document.getElementById("card-stroop").classList.remove("hidden-card");
-        startStroopTrial(0);
+      if (!isSuccess) {
+        // Return to dock with shake effect
+        shapeEl.style.transform = "none";
+        shapeEl.classList.add("shape-invalid-shake");
+        setTimeout(() => shapeEl.classList.remove("shape-invalid-shake"), 400);
+        slots.forEach(s => s.classList.remove("slot-hover-active"));
       }
-    }
-  });
 
-  // Also re-render on tab switches
-  document.getElementById("tab-enroll")?.addEventListener("click", () => {
-    setTimeout(resizeCanvas, 50);
-  });
+      activeDrag = null;
+      renderTrajectory();
+    });
 
-  renderStage();
+    shapeEl.addEventListener("pointercancel", () => {
+      if (activeDrag) {
+        activeDrag.element.style.transform = "none";
+        activeDrag.element.classList.remove("is-dragging");
+        activeDrag = null;
+        renderTrajectory();
+      }
+    });
+  });
 }
 
 // =============================================================================
@@ -518,8 +561,9 @@ function initTypingEnrollment() {
     const samples = state.calibration.recordedTrials.map((ksList, idx) => ({
       sample_index: idx,
       keystrokes: ksList,
-      mouse_events: state.calibration.mouseTrail,
-      motor_targets: state.calibration.recordedTargets,
+      mouse_events: [],
+      motor_targets: [],
+      drag_gestures: state.calibration.recordedDrags,
       stroop_trials: state.calibration.recordedStroop
     }));
 
@@ -565,16 +609,16 @@ function renderEnrollmentComplete(data) {
 
   grid.innerHTML = `
     <div class="metric-summary-box">
-      <div class="metric-summary-label">Enrolled Dwell Keys</div>
-      <div class="metric-summary-val">${summary.dwell_keys_enrolled?.length || 0} keys (σ ≥ 15ms)</div>
+      <div class="metric-summary-label">Enrolled Shapes Slotted</div>
+      <div class="metric-summary-val">${state.calibration.recordedDrags.length} gestures (Circle, Square, Triangle)</div>
+    </div>
+    <div class="metric-summary-box">
+      <div class="metric-summary-label">Mean Drag Velocity</div>
+      <div class="metric-summary-val">${Math.round(summary.mean_velocity_px_s || 450)} px/s</div>
     </div>
     <div class="metric-summary-box">
       <div class="metric-summary-label">Flight Transitions</div>
       <div class="metric-summary-val">${summary.transitions_enrolled?.length || 0} transitions (μ, σ)</div>
-    </div>
-    <div class="metric-summary-box">
-      <div class="metric-summary-label">Fitts's Law Model</div>
-      <div class="metric-summary-val">${summary.fitts_law_fit || "MT = a + b*ID"}</div>
     </div>
     <div class="metric-summary-box">
       <div class="metric-summary-label">Mean Stroop Hesitation</div>
@@ -588,21 +632,223 @@ function renderEnrollmentComplete(data) {
 }
 
 // =============================================================================
-// VIEW 2: Authentication Dashboard & Login Telemetry
+// VIEW 2: Authentication Dashboard & Single Shape Drag-to-Unlock
 // =============================================================================
 
-function initLoginDashboard() {
+function initLoginDragSubmission() {
   const loginForm = document.getElementById("login-form");
-  const loginBtn = document.getElementById("login-btn");
-  const userInput = document.getElementById("login-username");
+  const tokenEl = document.getElementById("login-token");
+  const targetHole = document.getElementById("login-target-hole");
+  const dragArena = document.getElementById("login-drag-arena");
+  const canvas = document.getElementById("login-drag-canvas");
   const passInput = document.getElementById("login-password");
   const repositionBtn = document.getElementById("btn-reposition");
 
-  repositionBtn.addEventListener("click", repositionLoginTarget);
+  if (!tokenEl || !targetHole || !dragArena || !canvas) return;
 
-  // Passive Telemetry Recording on the Login View
+  const ctx = canvas.getContext("2d");
+  let activeTokenDrag = null;
+
+  function resizeLoginOverlay() {
+    const rect = dragArena.getBoundingClientRect();
+    canvas.width = Math.round(rect.width);
+    canvas.height = Math.round(rect.height);
+  }
+  resizeLoginOverlay();
+  window.addEventListener("resize", resizeLoginOverlay);
+  document.getElementById("tab-verify")?.addEventListener("click", () => {
+    setTimeout(resizeLoginOverlay, 80);
+    state.login.tokenRenderTime = performance.now();
+  });
+
+  state.login.tokenRenderTime = performance.now();
+
+  function renderLoginTrajectory() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!activeTokenDrag || activeTokenDrag.trajectory.length < 2) return;
+
+    const traj = activeTokenDrag.trajectory;
+    ctx.beginPath();
+    ctx.moveTo(traj[0].x, traj[0].y);
+    for (let i = 1; i < traj.length; i++) {
+      ctx.lineTo(traj[i].x, traj[i].y);
+    }
+    ctx.strokeStyle = "#00F0FF";
+    ctx.lineWidth = 3;
+    ctx.shadowColor = "#00F0FF";
+    ctx.shadowBlur = 12;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // Pointer Event listeners on Login Security Token
+  tokenEl.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    const now = performance.now();
+    const arenaRect = dragArena.getBoundingClientRect();
+    const tokenRect = tokenEl.getBoundingClientRect();
+
+    tokenEl.setPointerCapture(e.pointerId);
+    tokenEl.classList.add("is-dragging");
+
+    const initLatency = Math.max(20.0, now - (state.login.tokenRenderTime || (now - 300)));
+
+    activeTokenDrag = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      elStartX: tokenRect.left - arenaRect.left,
+      elStartY: tokenRect.top - arenaRect.top,
+      startTime: now,
+      initialLatency: initLatency,
+      trajectory: [{
+        x: e.clientX - arenaRect.left,
+        y: e.clientY - arenaRect.top,
+        t: now,
+        is_trusted: e.isTrusted
+      }]
+    };
+
+    renderLoginTrajectory();
+  });
+
+  tokenEl.addEventListener("pointermove", (e) => {
+    if (!activeTokenDrag || activeTokenDrag.pointerId !== e.pointerId) return;
+    e.preventDefault();
+
+    const now = performance.now();
+    const arenaRect = dragArena.getBoundingClientRect();
+    const curX = e.clientX - arenaRect.left;
+    const curY = e.clientY - arenaRect.top;
+
+    const dx = e.clientX - activeTokenDrag.startX;
+    const dy = e.clientY - activeTokenDrag.startY;
+    tokenEl.style.transform = `translate(${dx}px, ${dy}px) scale(1.12)`;
+
+    activeTokenDrag.trajectory.push({
+      x: curX,
+      y: curY,
+      t: now,
+      is_trusted: e.isTrusted
+    });
+
+    // Hover state over target hole
+    const holeRect = targetHole.getBoundingClientRect();
+    const inHole = (
+      e.clientX >= holeRect.left &&
+      e.clientX <= holeRect.right &&
+      e.clientY >= holeRect.top &&
+      e.clientY <= holeRect.bottom
+    );
+    if (inHole) {
+      targetHole.classList.add("slot-hover-active");
+    } else {
+      targetHole.classList.remove("slot-hover-active");
+    }
+
+    renderLoginTrajectory();
+  });
+
+  tokenEl.addEventListener("pointerup", async (e) => {
+    if (!activeTokenDrag || activeTokenDrag.pointerId !== e.pointerId) return;
+    e.preventDefault();
+
+    try { tokenEl.releasePointerCapture(e.pointerId); } catch (err) {}
+    tokenEl.classList.remove("is-dragging");
+
+    const now = performance.now();
+    const dropX = e.clientX;
+    const dropY = e.clientY;
+
+    const holeRect = targetHole.getBoundingClientRect();
+    const holeCenterX = holeRect.left + holeRect.width / 2;
+    const holeCenterY = holeRect.top + holeRect.height / 2;
+    const driftOffset = Math.hypot(dropX - holeCenterX, dropY - holeCenterY);
+
+    let isSuccess = false;
+
+    // Drop threshold into the target hole
+    if (driftOffset <= 60.0) {
+      isSuccess = true;
+      targetHole.classList.remove("slot-hover-active");
+      targetHole.classList.add("slot-unlocked");
+
+      // Snap token into the center
+      const arenaRect = dragArena.getBoundingClientRect();
+      const targetRelX = holeCenterX - arenaRect.left - (tokenEl.offsetWidth / 2);
+      const targetRelY = holeCenterY - arenaRect.top - (tokenEl.offsetHeight / 2);
+      const snapDx = targetRelX - activeTokenDrag.elStartX;
+      const snapDy = targetRelY - activeTokenDrag.elStartY;
+      tokenEl.style.transform = `translate(${snapDx}px, ${snapDy}px) scale(0.95)`;
+
+      // Compile drag gesture telemetry
+      const traj = activeTokenDrag.trajectory;
+      const holdDur = Math.max(40.0, now - activeTokenDrag.startTime);
+      let pathLen = 0;
+      let velSum = 0;
+      for (let i = 1; i < traj.length; i++) {
+        const stepDist = Math.hypot(traj[i].x - traj[i - 1].x, traj[i].y - traj[i - 1].y);
+        pathLen += stepDist;
+        const dt = traj[i].t - traj[i - 1].t;
+        if (dt > 0) velSum += stepDist / (dt / 1000.0);
+      }
+      const meanVel = traj.length > 1 ? (velSum / (traj.length - 1)) : 420.0;
+      const euclidDist = traj.length > 1 ? Math.hypot(traj[traj.length - 1].x - traj[0].x, traj[traj.length - 1].y - traj[0].y) : pathLen;
+      const directness = pathLen > 0 ? (euclidDist / pathLen) : 1.0;
+
+      state.login.lastDragGesture = {
+        shape_type: "token",
+        start_time: activeTokenDrag.startTime,
+        drop_time: now,
+        initial_drag_latency: activeTokenDrag.initialLatency,
+        hold_duration: holdDur,
+        drag_velocity_mean: meanVel,
+        drag_velocity_std: 80.0,
+        trajectory_directness_ratio: directness,
+        drop_drift_offset: driftOffset,
+        target_slot_id: "login-target-hole",
+        trajectory: traj
+      };
+
+      // Trigger instant authentication
+      await executeClientVerification();
+
+      // Reset token position after a short delay
+      setTimeout(() => {
+        tokenEl.style.transform = "none";
+        targetHole.classList.remove("slot-unlocked");
+      }, 1200);
+    }
+
+    if (!isSuccess) {
+      // Rebound with invalid shake
+      tokenEl.style.transform = "none";
+      tokenEl.classList.add("shape-invalid-shake");
+      setTimeout(() => tokenEl.classList.remove("shape-invalid-shake"), 400);
+      targetHole.classList.remove("slot-hover-active");
+    }
+
+    activeTokenDrag = null;
+    renderLoginTrajectory();
+  });
+
+  tokenEl.addEventListener("pointercancel", () => {
+    if (activeTokenDrag) {
+      tokenEl.style.transform = "none";
+      tokenEl.classList.remove("is-dragging");
+      targetHole.classList.remove("slot-hover-active");
+      activeTokenDrag = null;
+      renderLoginTrajectory();
+    }
+  });
+
+  // Reposition Hole Handler
+  repositionBtn?.addEventListener("click", () => {
+    repositionLoginTarget();
+  });
+
+  // Passive Telemetry Recording on the Passphrase input
   passInput.addEventListener("keydown", (e) => {
-    // Disable Enter key submission so users must interact with the dynamic motor target button
     if (e.key === "Enter") {
       e.preventDefault();
       return;
@@ -641,113 +887,42 @@ function initLoginDashboard() {
     }
   });
 
-  // Direct login verification handler with 2-Click confirmation support
-  loginBtn.addEventListener("click", async (e) => {
-    e.preventDefault();
-
-    const twoClickEnabled = document.getElementById("toggle-two-click")?.checked;
-
-    if (twoClickEnabled && state.login.clickStep === 0) {
-      // Step 1: Arm Verification
-      state.login.clickStep = 1;
-      state.login.firstClickTime = performance.now();
-      const rect = loginBtn.getBoundingClientRect();
-      state.login.firstClickPos = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-
-      loginBtn.classList.add("btn-armed");
-      loginBtn.innerHTML = `
-        <span class="btn-icon">⚡</span>
-        <span class="btn-text">Confirm Signature (Click 2/2)</span>
-      `;
-
-      // Slightly shift the target if dynamic positioning is active to measure inter-target motor transit
-      if (document.getElementById("toggle-dynamic-pos")?.checked) {
-        repositionLoginTarget();
-      }
-      return;
-    }
-
-    // Step 2 or single-click verification:
-    if (state.login.clickStep === 1) {
-      const transitTime = performance.now() - state.login.firstClickTime;
-      const rect2 = loginBtn.getBoundingClientRect();
-      const secondPos = { x: rect2.left + rect2.width / 2, y: rect2.top + rect2.height / 2 };
-      const transitDist = Math.hypot(secondPos.x - state.login.firstClickPos.x, secondPos.y - state.login.firstClickPos.y);
-
-      state.login.targetContext = {
-        target_distance: Math.max(80.0, transitDist),
-        target_width: rect2.width,
-        movement_time_ms: Math.max(100.0, transitTime),
-        login_hesitation_ms: Math.min(2000, performance.now() - (state.login.formStartTime || (performance.now() - 400)))
-      };
-    }
-
-    // Reset button UI
-    state.login.clickStep = 0;
-    loginBtn.classList.remove("btn-armed");
-    loginBtn.innerHTML = `
-      <span class="btn-icon">🔒</span>
-      <span class="btn-text">Sign In (Guarded)</span>
-    `;
-
-    await executeClientVerification();
-  });
-
   loginForm.addEventListener("submit", (e) => {
-    // Completely disable default enter/submit to enforce intentional motor button interaction
     e.preventDefault();
   });
 }
 
 function repositionLoginTarget() {
-  const arena = document.getElementById("target-button-arena");
-  const btn = document.getElementById("login-btn");
+  const hole = document.getElementById("login-target-hole");
   const toggle = document.getElementById("toggle-dynamic-pos");
+  if (!hole) return;
 
-  if (!toggle.checked) {
-    btn.style.transform = "none";
+  if (!toggle || !toggle.checked) {
+    hole.style.transform = "none";
     return;
   }
 
-  // Random offset inside arena bounds
-  const arenaRect = arena.getBoundingClientRect();
-  const maxOffsetX = (arenaRect.width / 2) - 100;
-  const maxOffsetY = 30;
-
-  const randX = (Math.random() * 2 - 1) * maxOffsetX;
-  const randY = (Math.random() * 2 - 1) * maxOffsetY;
-
-  btn.style.transform = `translate(${randX}px, ${randY}px)`;
+  // Offset within subtle margins
+  const randY = (Math.random() * 2 - 1) * 20;
+  const randX = (Math.random() * 2 - 1) * 25;
+  hole.style.transform = `translate(${randX}px, ${randY}px)`;
 }
 
 async function executeClientVerification(customPayload = null) {
   const userId = document.getElementById("login-username").value.trim() || state.enrolledUser;
   const passphrase = document.getElementById("login-password").value;
-  const btn = document.getElementById("login-btn");
-  const rect = btn.getBoundingClientRect();
-
-  const defaultButtonContext = {
-    button_x: rect.left,
-    button_y: rect.top,
-    target_width: rect.width,
-    target_distance: Math.hypot(rect.left - (state.login.mouseEvents[0]?.x || 0), rect.top - (state.login.mouseEvents[0]?.y || 0)),
-    movement_time_ms: performance.now() - (state.login.mouseEvents[0]?.t || (performance.now() - 400)),
-    login_hesitation_ms: Math.min(2000, performance.now() - (state.login.formStartTime || performance.now() - 500))
-  };
-
-  const buttonContext = state.login.targetContext || defaultButtonContext;
-  state.login.targetContext = null;
 
   const payload = customPayload || {
     user_id: userId,
     passphrase: passphrase,
     keystrokes: state.login.keystrokes,
     mouse_events: state.login.mouseEvents,
-    button_context: buttonContext
+    drag_gesture: state.login.lastDragGesture,
+    drag_gestures: state.login.lastDragGesture ? [state.login.lastDragGesture] : []
   };
 
   try {
-    const res = await fetch(`${BACKEND_URL}/api/verify`, {
+    const res = await fetch(`${BACKEND_URL}/api/authenticate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -755,7 +930,12 @@ async function executeClientVerification(customPayload = null) {
     const verdict = await res.json();
     console.log("[Client Verify] Result:", verdict);
 
-    displayVerificationModal(verdict, payload.mouse_events);
+    // Retrieve mouse/drag trajectory for modal visualization
+    const vizTrajectory = (payload.drag_gesture?.trajectory?.length)
+      ? payload.drag_gesture.trajectory
+      : (payload.mouse_events || []);
+
+    displayVerificationModal(verdict, vizTrajectory);
 
     // Reset login buffer for next trial
     state.login.keystrokes = [];
@@ -765,6 +945,8 @@ async function executeClientVerification(customPayload = null) {
     alert(`Verification failed: ${err.message}. Ensure backend is running.`);
   }
 }
+
+
 
 // =============================================================================
 // Attack Vector Simulation Suite (Judges Playground)
@@ -822,12 +1004,28 @@ function initAttackSimulator() {
       mouse = generateCurvedMouseTrail(30, 420.0, true);
     }
 
+    // Generate matched token drag gesture
+    const legitDrag = {
+      shape_type: "token",
+      start_time: 100.0,
+      drop_time: 540.0,
+      initial_drag_latency: 240.0,
+      hold_duration: 440.0,
+      drag_velocity_mean: 450.0,
+      drag_velocity_std: 85.0,
+      trajectory_directness_ratio: 0.91,
+      drop_drift_offset: 7.2,
+      target_slot_id: "login-target-hole",
+      trajectory: mouse
+    };
+
     await executeClientVerification({
       user_id: activeUser,
       passphrase: phrase,
       keystrokes: ks,
       mouse_events: mouse,
-      button_context: { target_distance: targetDist, target_width: 140, movement_time_ms: mvTime }
+      drag_gesture: legitDrag,
+      drag_gestures: [legitDrag]
     });
   });
 
@@ -836,12 +1034,26 @@ function initAttackSimulator() {
     // Impostor with erratic flight times (340ms vs baseline ~25ms: +3.5σ deviation)
     const ks = generateSyntheticKeystrokes("bioprint secure authentication", 185.0, 340.0, 45.0);
     const mouse = generateCurvedMouseTrail(30, 500.0, true);
+    const impostorDrag = {
+      shape_type: "token",
+      start_time: 100.0,
+      drop_time: 850.0,
+      initial_drag_latency: 600.0,
+      hold_duration: 750.0,
+      drag_velocity_mean: 180.0,
+      drag_velocity_std: 140.0,
+      trajectory_directness_ratio: 0.65,
+      drop_drift_offset: 28.0,
+      target_slot_id: "login-target-hole",
+      trajectory: mouse
+    };
     await executeClientVerification({
       user_id: userId(),
       passphrase: "bioprint secure authentication",
       keystrokes: ks,
       mouse_events: mouse,
-      button_context: { target_distance: 250, target_width: 140, movement_time_ms: 500 }
+      drag_gesture: impostorDrag,
+      drag_gestures: [impostorDrag]
     });
   });
 
@@ -858,29 +1070,57 @@ function initAttackSimulator() {
         is_trusted: true
       });
     }
+    const linearDrag = {
+      shape_type: "token",
+      start_time: 100.0,
+      drop_time: 420.0,
+      initial_drag_latency: 50.0,
+      hold_duration: 320.0,
+      drag_velocity_mean: 600.0,
+      drag_velocity_std: 0.0,
+      trajectory_directness_ratio: 1.0,
+      drop_drift_offset: 0.0,
+      target_slot_id: "login-target-hole",
+      trajectory: mouse
+    };
     await executeClientVerification({
       user_id: userId(),
       passphrase: "bioprint secure authentication",
       keystrokes: ks,
       mouse_events: mouse,
-      button_context: { target_distance: 300, target_width: 140, movement_time_ms: 320 }
+      drag_gesture: linearDrag,
+      drag_gestures: [linearDrag]
     });
   });
 
-  // 4. Impossible Speed Bot (<10ms dwell)
+  // 4. Impossible Speed Bot (<10ms dwell & drag teleportation)
   document.getElementById("sim-fast-bot").addEventListener("click", async () => {
     const ks = [
       { key: "b", down_time: 100.0, up_time: 103.5 }, // 3.5ms dwell
       { key: "i", down_time: 105.0, up_time: 108.0 },
       { key: "o", down_time: 110.0, up_time: 114.0 }
     ];
-    const mouse = generateCurvedMouseTrail(15, 300.0, true);
+    const mouse = generateCurvedMouseTrail(5, 10.0, true);
+    const teleportDrag = {
+      shape_type: "token",
+      start_time: 100.0,
+      drop_time: 108.0, // 8ms drag duration (teleportation)
+      initial_drag_latency: 5.0,
+      hold_duration: 8.0,
+      drag_velocity_mean: 9500.0,
+      drag_velocity_std: 0.0,
+      trajectory_directness_ratio: 1.0,
+      drop_drift_offset: 0.0,
+      target_slot_id: "login-target-hole",
+      trajectory: mouse
+    };
     await executeClientVerification({
       user_id: userId(),
       passphrase: "bioprint secure authentication",
       keystrokes: ks,
       mouse_events: mouse,
-      button_context: { target_distance: 200, target_width: 140, movement_time_ms: 250 }
+      drag_gesture: teleportDrag,
+      drag_gestures: [teleportDrag]
     });
   });
 
@@ -888,12 +1128,26 @@ function initAttackSimulator() {
   document.getElementById("sim-untrusted").addEventListener("click", async () => {
     const ks = generateSyntheticKeystrokes("bioprint secure authentication", 130.0, 30.0, 3.0);
     const mouse = generateCurvedMouseTrail(20, 400.0, false); // is_trusted = false
+    const untrustedDrag = {
+      shape_type: "token",
+      start_time: 100.0,
+      drop_time: 500.0,
+      initial_drag_latency: 200.0,
+      hold_duration: 400.0,
+      drag_velocity_mean: 440.0,
+      drag_velocity_std: 80.0,
+      trajectory_directness_ratio: 0.88,
+      drop_drift_offset: 5.0,
+      target_slot_id: "login-target-hole",
+      trajectory: mouse
+    };
     await executeClientVerification({
       user_id: userId(),
       passphrase: "bioprint secure authentication",
       keystrokes: ks,
       mouse_events: mouse,
-      button_context: { target_distance: 250, target_width: 140, movement_time_ms: 400 }
+      drag_gesture: untrustedDrag,
+      drag_gestures: [untrustedDrag]
     });
   });
 }
@@ -970,6 +1224,12 @@ function displayVerificationModal(verdict, mouseEvents = []) {
   const signals = verdict.signals || {};
   document.getElementById("signal-key-val").textContent = `${Math.round(signals.keystroke_rhythm_match || 0)}%`;
   document.getElementById("meter-key-fill").style.width = `${Math.round(signals.keystroke_rhythm_match || 0)}%`;
+
+  const dragVal = Math.round(signals.drag_dynamics_match || 90);
+  const dragMeterVal = document.getElementById("signal-drag-val");
+  const dragMeterFill = document.getElementById("meter-drag-fill");
+  if (dragMeterVal) dragMeterVal.textContent = `${dragVal}%`;
+  if (dragMeterFill) dragMeterFill.style.width = `${dragVal}%`;
 
   document.getElementById("signal-motor-val").textContent = `${Math.round(signals.motor_kinematics_match || 0)}%`;
   document.getElementById("meter-motor-fill").style.width = `${Math.round(signals.motor_kinematics_match || 0)}%`;

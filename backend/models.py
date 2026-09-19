@@ -76,6 +76,20 @@ class MouseEvent(BaseModel):
     is_trusted: bool = Field(default=True, description="DOM event.isTrusted property")
 
 
+class DragGestureEvent(BaseModel):
+    shape_type: str = Field(default="token", description="Type of shape (circle, square, triangle, token)")
+    start_time: float = Field(..., description="Timestamp of pointerdown")
+    drop_time: float = Field(..., description="Timestamp of pointerup")
+    initial_drag_latency: float = Field(default=0.0, description="Time from shape appearance to pointerdown (ms)")
+    hold_duration: float = Field(default=0.0, description="Duration held while dragging (ms)")
+    drag_velocity_mean: float = Field(default=0.0, description="Mean velocity px/s")
+    drag_velocity_std: float = Field(default=0.0, description="Velocity standard deviation px/s")
+    trajectory_directness_ratio: float = Field(default=1.0, description="Euclidean distance / Path length (0.0 - 1.0)")
+    drop_drift_offset: float = Field(default=0.0, description="Radial distance from target hole center (px)")
+    target_slot_id: Optional[str] = None
+    trajectory: List[MouseEvent] = Field(default_factory=list)
+
+
 class MotorTargetEvent(BaseModel):
     target_id: int
     start_t: float
@@ -99,6 +113,7 @@ class EnrollmentSample(BaseModel):
     keystrokes: List[KeystrokeEvent]
     mouse_events: List[MouseEvent] = Field(default_factory=list)
     motor_targets: List[MotorTargetEvent] = Field(default_factory=list)
+    drag_gestures: List[DragGestureEvent] = Field(default_factory=list)
     stroop_trials: List[StroopTrialEvent] = Field(default_factory=list)
 
 
@@ -121,6 +136,9 @@ class VerificationRequest(BaseModel):
     passphrase: Optional[str] = ""
     keystrokes: List[KeystrokeEvent] = Field(default_factory=list)
     mouse_events: List[MouseEvent] = Field(default_factory=list)
+    drag_gesture: Optional[DragGestureEvent] = None
+    drag_gestures: List[DragGestureEvent] = Field(default_factory=list)
+    drag_dynamics: Optional[Dict[str, Any]] = None
     button_context: Optional[Dict[str, Any]] = None  # target coordinates, dimensions
 
 
@@ -128,7 +146,8 @@ class SignalsBreakdown(BaseModel):
     bot_detected: bool
     keystroke_rhythm_match: float
     motor_kinematics_match: float
-    cognitive_delay_match: float
+    drag_dynamics_match: float = 100.0
+    cognitive_delay_match: float = 100.0
 
 
 class VerificationResponse(BaseModel):

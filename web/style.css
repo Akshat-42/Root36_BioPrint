@@ -370,8 +370,10 @@ body.dark-theme {
   border-radius: 4px;
 }
 
-/* Motor Stage */
-.motor-stage-container {
+/* ==========================================================================
+   Drag-and-Drop Shape-in-the-Hole Mini-Game Styles
+   ========================================================================== */
+.drag-game-container {
   position: relative;
   background: rgba(5, 8, 16, 0.7);
   border: 1px solid var(--border-subtle);
@@ -379,47 +381,299 @@ body.dark-theme {
   overflow: hidden;
 }
 
-.motor-telemetry-hud {
+.drag-arena {
+  position: relative;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px 30px;
+  background: 
+    radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.03) 0%, transparent 70%),
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 100% 100%, 30px 30px, 30px 30px;
+  user-select: none;
+}
+
+.drag-canvas-overlay, .login-drag-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.dock-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.shapes-row, .holes-row {
   display: flex;
   justify-content: space-around;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 12px;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  z-index: 10;
 }
-.hud-val {
+
+/* Draggable Shape styling */
+.draggable-shape {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 20, 36, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  cursor: grab;
+  touch-action: none;
+  transition: transform 0.15s ease-out, box-shadow 0.2s, border-color 0.2s;
+  position: relative;
+}
+
+.draggable-shape:hover {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 240, 255, 0.3);
+  border-color: rgba(0, 240, 255, 0.5);
+}
+
+.draggable-shape.is-dragging {
+  cursor: grabbing;
+  z-index: 999 !important;
+  opacity: 0.95;
+  transform: scale(1.12);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 240, 255, 0.6);
+  pointer-events: none;
+}
+
+.draggable-shape.slotted {
+  pointer-events: none;
+  opacity: 0.85;
+  filter: brightness(1.2);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+  border-color: #10B981;
+}
+
+.shape-svg {
+  width: 38px;
+  height: 38px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+}
+
+.shape-text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Target Slot Outline styling */
+.target-slot {
+  width: 86px;
+  height: 86px;
+  border-radius: 18px;
+  background: rgba(10, 16, 30, 0.4);
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.slot-svg {
+  width: 48px;
+  height: 48px;
+  transition: transform 0.25s ease;
+}
+
+.slot-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.target-slot.slot-hover-active {
+  transform: scale(1.08);
+  background: rgba(0, 240, 255, 0.08);
+  border-color: var(--accent-cyan);
+  border-style: solid;
+  box-shadow: 0 0 25px var(--accent-cyan-glow);
+}
+
+.target-slot.slot-filled {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--accent-emerald);
+  border-style: solid;
+  box-shadow: 0 0 25px var(--accent-emerald-glow);
+  animation: slot-snap 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slot-snap {
+  0% { transform: scale(0.9); }
+  50% { transform: scale(1.15); box-shadow: 0 0 35px rgba(16, 185, 129, 0.8); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake-invalid {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.shape-invalid-shake {
+  animation: shake-invalid 0.35s ease-in-out;
+}
+
+/* ==========================================================================
+   Testing/Login View: Single Shape Drag-to-Unlock
+   ========================================================================== */
+.login-drag-submission-area {
+  position: relative;
+  margin: 20px 0 16px;
+  padding: 18px 20px;
+  background: rgba(5, 8, 16, 0.8);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.drag-arena-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.arena-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
   color: var(--accent-cyan);
   font-weight: 700;
 }
 
-#motor-canvas {
-  display: block;
-  width: 100%;
-  height: 340px;
-  cursor: crosshair;
-  background: transparent;
+.arena-hint {
+  font-size: 11px;
+  color: var(--text-dim);
 }
 
-.canvas-overlay-msg {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(13, 20, 36, 0.9);
-  border: 1px solid var(--border-card);
-  padding: 10px 22px;
-  border-radius: 9999px;
-  font-size: 13px;
-  color: var(--accent-cyan);
-  pointer-events: none !important;
-  user-select: none;
-  transition: opacity 0.3s;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+.login-drag-track {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  min-height: 84px;
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 4px 10px;
+  z-index: 10;
 }
-.canvas-overlay-msg * {
-  pointer-events: none !important;
+
+.drag-rail-guide {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: rgba(0, 240, 255, 0.3);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 4px;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Token Draggable */
+.token-shape {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(59, 130, 246, 0.35));
+  border: 2px solid var(--accent-cyan);
+  box-shadow: 0 0 20px var(--accent-cyan-glow);
+}
+
+.token-core {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.token-glyph {
+  font-size: 22px;
+}
+
+.token-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #FFFFFF;
+}
+
+/* Login Target Hole */
+.login-target-hole {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: rgba(10, 16, 30, 0.6);
+  border: 2px dashed rgba(0, 240, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.6);
+}
+
+.hole-core {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.hole-glyph {
+  font-size: 20px;
+  opacity: 0.7;
+}
+
+.hole-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.login-target-hole.slot-hover-active {
+  transform: scale(1.1);
+  border-color: #00F0FF;
+  border-style: solid;
+  box-shadow: 0 0 30px var(--accent-cyan-glow), inset 0 0 15px rgba(0, 240, 255, 0.3);
+}
+
+.login-target-hole.slot-unlocked {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--accent-emerald);
+  border-style: solid;
+  box-shadow: 0 0 35px var(--accent-emerald-glow);
 }
 
 /* Stroop Stage */
