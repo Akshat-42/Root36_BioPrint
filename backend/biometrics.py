@@ -598,7 +598,7 @@ class BiometricsEngine:
             )
 
         # Extract baselines
-        typing_base = baseline_profile.get("typing_baseline") or baseline_profile.get("keystroke_baseline") or {}
+        typing_base = baseline_profile.get("typing_baseline") or {}
         motor_base = baseline_profile.get("motor_baseline") or {}
 
         # 3. Keystroke Dynamics & Cadence Evaluation (Z-Score Engine)

@@ -129,14 +129,12 @@ def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
         baseline = BaselineProfileRecord(
             user_id=request.username,
             typing_baseline_json=json.dumps(typing_base),
-            motor_baseline_json=json.dumps(motor_base),
-            keystroke_baseline_json=json.dumps(typing_base)
+            motor_baseline_json=json.dumps(motor_base)
         )
         db.add(baseline)
     else:
         baseline.typing_baseline_json = json.dumps(typing_base)
         baseline.motor_baseline_json = json.dumps(motor_base)
-        baseline.keystroke_baseline_json = json.dumps(typing_base)
 
     db.commit()
 
@@ -172,7 +170,7 @@ def verify_user(request: VerificationRequest, db: Session = Depends(get_db)):
     5. Returns composite confidence score with sub-50ms latency and diagnostic explainability.
     """
     username = request.username or request.user_id or "alice"
-    password = request.password if request.password != "" else (request.passphrase or "")
+    password = request.password or ""
 
     user = db.query(UserRecord).filter(UserRecord.user_id == username).first()
     if not user or not user.baseline:
@@ -197,8 +195,6 @@ def verify_user(request: VerificationRequest, db: Session = Depends(get_db)):
     password_valid = False
     if user.password_hash:
         password_valid = verify_password(password, user.password_hash)
-    elif user.passphrase and user.passphrase == password:
-        password_valid = True
 
     # Reconstruct baseline dictionary
     typing_base = {}
@@ -206,11 +202,6 @@ def verify_user(request: VerificationRequest, db: Session = Depends(get_db)):
     if user.baseline.typing_baseline_json:
         try:
             typing_base = json.loads(user.baseline.typing_baseline_json)
-        except Exception:
-            pass
-    if not typing_base and user.baseline.keystroke_baseline_json:
-        try:
-            typing_base = json.loads(user.baseline.keystroke_baseline_json)
         except Exception:
             pass
 

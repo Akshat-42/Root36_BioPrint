@@ -22,7 +22,6 @@ class UserRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String(64), unique=True, index=True, nullable=False)
     password_hash = Column(String(256), nullable=False)  # Argon2id / bcrypt salted hash
-    passphrase = Column(String(256), nullable=True)     # Legacy alias if needed
     sample_count = Column(Integer, default=1)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -39,8 +38,6 @@ class BaselineProfileRecord(Base):
     user_id = Column(String(64), ForeignKey("users.user_id"), unique=True, index=True, nullable=False)
     typing_baseline_json = Column(Text, nullable=False)   # Serialized QWERTY typing distributions (R_hand, clusters, etc.)
     motor_baseline_json = Column(Text, nullable=False)    # Serialized motor distributions (tortuosity, docking, etc.)
-    keystroke_baseline_json = Column(Text, nullable=True) # Legacy alias
-    cognitive_baseline_json = Column(Text, nullable=True) # Optional/legacy
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("UserRecord", back_populates="baseline")
@@ -139,7 +136,6 @@ class VerificationRequest(BaseModel):
 
     # Backwards compatibility / aliases:
     user_id: Optional[str] = None
-    passphrase: Optional[str] = None
     keystrokes: List[KeystrokeEvent] = Field(default_factory=list)
     drag_gesture: Optional[DragGestureEvent] = None
     drag_gestures: List[DragGestureEvent] = Field(default_factory=list)
