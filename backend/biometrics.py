@@ -514,20 +514,8 @@ class BiometricsEngine:
         )
         explainability_reasons.extend(motor_reasons)
 
-        # 4. Cognitive Baseline Match (Stroop)
-        cognitive_baseline = baseline_profile.get("cognitive_baseline", {})
-        # Baseline cognitive score default
-        cog_score = 85.0
-        if "login_hesitation_ms" in (button_context or {}):
-            obs_hesitation = float(button_context["login_hesitation_ms"])
-            mu_cog = cognitive_baseline.get("mean_reaction_ms", 550.0)
-            std_cog = cognitive_baseline.get("std_reaction_ms", 85.0)
-            z_cog = abs(obs_hesitation - mu_cog) / max(30.0, std_cog)
-            cog_score = float(max(0.0, min(100.0, 100.0 * math.exp(-z_cog / 2.0))))
-            if z_cog > 2.6:
-                explainability_reasons.append(
-                    f"Cognitive hesitation deviation: {obs_hesitation:.0f}ms vs baseline {mu_cog:.0f}ms ({z_cog:.1f}σ)"
-                )
+        # 4. Cognitive Baseline Match (Stroop) - Temporarily inactive for login
+        cog_score = 100.0  # Inactive on standard login forms
 
         # 5. Composite Fusion & Decision Logic
         if bot_detected:
@@ -536,13 +524,13 @@ class BiometricsEngine:
             bot_match = 0.0
         else:
             bot_match = 100.0
-            # Multi-modal fusion weights: 50% Keystroke, 35% Motor, 15% Cognitive
+            # Bi-modal fusion weights (Keystroke & Motor kinematics): 60% Keystroke, 40% Motor
             if keystrokes and len(mouse_events) >= 3:
-                composite_score = (0.50 * key_score) + (0.35 * motor_score) + (0.15 * cog_score)
+                composite_score = (0.60 * key_score) + (0.40 * motor_score)
             elif keystrokes:
-                composite_score = (0.80 * key_score) + (0.20 * cog_score)
+                composite_score = key_score
             elif len(mouse_events) >= 3:
-                composite_score = (0.75 * motor_score) + (0.25 * cog_score)
+                composite_score = motor_score
             else:
                 composite_score = 50.0
 

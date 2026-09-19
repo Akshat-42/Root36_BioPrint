@@ -602,6 +602,11 @@ function initLoginDashboard() {
 
   // Passive Telemetry Recording on the Login View
   passInput.addEventListener("keydown", (e) => {
+    // Disable Enter key submission so users must interact with the dynamic motor target button
+    if (e.key === "Enter") {
+      e.preventDefault();
+      return;
+    }
     const now = performance.now();
     if (!state.login.formStartTime) state.login.formStartTime = now;
     if (!e.repeat && !state.login.activeKeys.has(e.key)) {
@@ -688,9 +693,9 @@ function initLoginDashboard() {
     await executeClientVerification();
   });
 
-  loginForm.addEventListener("submit", async (e) => {
+  loginForm.addEventListener("submit", (e) => {
+    // Completely disable default enter/submit to enforce intentional motor button interaction
     e.preventDefault();
-    loginBtn.click();
   });
 }
 
