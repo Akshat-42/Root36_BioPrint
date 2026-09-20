@@ -1884,6 +1884,15 @@ function initDashboardPage() {
   const authContainer = document.getElementById("dash-authenticated-view");
   const unauthContainer = document.getElementById("dash-unauth-view");
   const logoutBtn = document.getElementById("btn-logout");
+  const explainabilityToggle = document.getElementById("dash-explainability-toggle");
+  const explainabilityPanel = document.getElementById("dash-explainability-panel");
+
+  explainabilityToggle?.addEventListener("click", () => {
+    const isExpanded = explainabilityToggle.getAttribute("aria-expanded") === "true";
+    explainabilityToggle.setAttribute("aria-expanded", String(!isExpanded));
+    explainabilityToggle.textContent = isExpanded ? "View Audit Diagnostics" : "Hide Audit Diagnostics";
+    explainabilityPanel?.classList.toggle("hidden", isExpanded);
+  });
 
   const rawSession = sessionStorage.getItem("bioprint_auth_session");
   const savedUser = sessionStorage.getItem("bioprint_auth_user") || "Enrolled User";
@@ -1914,6 +1923,9 @@ function initDashboardPage() {
     const signals = verdict.signals || {};
     document.getElementById("dash-metric-keystroke").textContent = `${Math.round(signals.keystroke_rhythm_match || 89)}%`;
     document.getElementById("dash-metric-motor").textContent = `${Math.round(signals.motor_kinematics_match || 91)}%`;
+    document.getElementById("dash-table-keystroke").textContent = `${Math.round(signals.keystroke_rhythm_match || 89)}%`;
+    document.getElementById("dash-table-motor").textContent = `${Math.round(signals.motor_kinematics_match || 91)}%`;
+    document.getElementById("dash-table-integrity").textContent = signals.bot_detected ? "0%" : "100%";
 
     // Explainability List
     const expList = document.getElementById("dash-explainability-list");

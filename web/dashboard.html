@@ -89,9 +89,9 @@
     <div class="card">
       <div class="card-header" style="margin-bottom: 12px;">
         <span class="card-tag">BIOMETRIC SIGNAL ANALYSIS</span>
-        <h2 class="card-title" style="font-size: 16px;">Neuromuscular Feature Telemetry</h2>
+        <h2 class="card-title" style="font-size: 16px;">Behavior Analysis</h2>
         <p class="card-subtitle">
-          Evaluated feature vectors against personalized calibration baselines:
+          Summary of verified behavioral signals:
         </p>
       </div>
 
@@ -99,47 +99,25 @@
         <thead>
           <tr>
             <th>Modality</th>
-            <th>Biometric Feature</th>
-            <th>Observed Session</th>
-            <th>Baseline Tolerance</th>
             <th>Verdict Signal</th>
+            <th>% Match</th>
           </tr>
         </thead>
         <tbody id="dash-telemetry-tbody">
           <tr>
             <td>Typing</td>
-            <td>QWERTY Hand-Switch Ratio (R_hand)</td>
-            <td>0.68</td>
-            <td>0.50 - 0.85 (&plusmn;1.5&sigma;)</td>
             <td style="color: var(--success);">Match (Touch Typist)</td>
-          </tr>
-          <tr>
-            <td>Typing</td>
-            <td>Spacebar Saccade Boundary Latency</td>
-            <td>182 ms</td>
-            <td>150 - 240 ms</td>
-            <td style="color: var(--success);">Natural Lexical Transition</td>
+            <td id="dash-table-keystroke">89%</td>
           </tr>
           <tr>
             <td>Kinematics</td>
-            <td>Ocular-Motor Saccadic Pause Dip</td>
-            <td>48% dip</td>
-            <td>35% - 65% dip</td>
             <td style="color: var(--success);">Foveal Alignment Confirmed</td>
-          </tr>
-          <tr>
-            <td>Kinematics</td>
-            <td>Physiological Grip Tremor Peak</td>
-            <td>10.4 Hz</td>
-            <td>8.0 - 12.0 Hz</td>
-            <td style="color: var(--success);">Involuntary Tremor Active</td>
+            <td id="dash-table-motor">91%</td>
           </tr>
           <tr>
             <td>Integrity</td>
-            <td>Browser Event Trust & WebDriver</td>
-            <td>Trusted (isTrusted: true)</td>
-            <td>isTrusted === true, webdriver: false</td>
             <td style="color: var(--success);">Human Operator Confirmed</td>
+            <td id="dash-table-integrity">100%</td>
           </tr>
         </tbody>
       </table>
@@ -155,7 +133,11 @@
         </p>
       </div>
 
-      <div class="explainability-panel">
+      <button type="button" class="btn btn-secondary explainability-toggle" id="dash-explainability-toggle" aria-expanded="false" aria-controls="dash-explainability-panel">
+        View Audit Diagnostics
+      </button>
+
+      <div class="explainability-panel hidden" id="dash-explainability-panel">
         <ul class="explainability-list" id="dash-explainability-list">
           <li>All behavioral biometric dimensions fall well within baseline confidence bounds (Z &lt; 2.5&sigma;).</li>
         </ul>
