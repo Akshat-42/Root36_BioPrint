@@ -230,7 +230,7 @@ function initLoginGateway() {
         pangramTag.textContent = `Typing... (${typed.length}/${PANGRAM_TARGET.length})`;
         pangramTag.className = "pangram-match-tag";
       } else {
-        pangramTag.textContent = "Status: Typo detected ✗";
+        pangramTag.textContent = "Status: Typo detected ✗ (Must match exactly)";
         pangramTag.className = "pangram-match-tag mismatch";
       }
     });

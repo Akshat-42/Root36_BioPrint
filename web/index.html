@@ -65,14 +65,19 @@
         <!-- Verification Natural Identity Pangram Field -->
         <div class="form-group">
           <div class="form-label-row">
-            <label for="login-pangram-input">Verification pangram</label>
+            <label for="login-pangram-input">Verification Test Sentence</label>
             <span class="pangram-match-tag" id="pangram-status-tag">Status: Pending</span>
           </div>
           <div class="pangram-prompt-box">
             <span class="prompt-text">"Quick foxes jump over lazy brown dogs"</span>
           </div>
-          <input type="text" id="login-pangram-input" class="input-text" placeholder="Type the pangram above..."
+          <input type="text" id="login-pangram-input" class="input-text" placeholder="Type the test sentence above..."
             autocomplete="off" spellcheck="false" required>
+          <div class="field-disclaimer">
+            <span class="disclaimer-icon">⚠️</span>
+            <span><strong>Disclaimer:</strong> Please type the test sentence <em>exactly</em> as shown above
+              (case-sensitive, including spaces). </span>
+          </div>
         </div>
 
         <!-- Dynamic Saccade & Track Verification Slider (Full Width Matching Sign Up) -->
