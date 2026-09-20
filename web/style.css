@@ -25,7 +25,7 @@
 
   --success: #4d8f78;
   --success-subtle: rgba(77, 143, 120, 0.12);
-  
+
   --warning: #d4a64d;
   --warning-subtle: rgba(212, 166, 77, 0.15);
 
@@ -39,7 +39,7 @@
 
   --font-family: 'Commissioner', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'Commissioner', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-heading: 'Spicy Rice', cursive;
+  --font-heading: 'Open Sans', sans-serif;
   --font-brand: 'Slackey', cursive;
   --font-subheading: 'Commissioner', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
@@ -227,6 +227,7 @@ a:hover {
     opacity: 0;
     transform: translateX(28px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -238,6 +239,7 @@ a:hover {
     opacity: 1;
     transform: translateX(0);
   }
+
   to {
     opacity: 0;
     transform: translateX(-28px);
@@ -249,13 +251,16 @@ a:hover {
     opacity: 0;
     transform: translateY(18px) scale(0.94);
   }
+
   55% {
     opacity: 1;
     transform: translateY(-8px) scale(1.02);
   }
+
   75% {
     transform: translateY(3px) scale(0.995);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1251,12 +1256,15 @@ label {
   .app-header {
     padding: 12px 16px;
   }
+
   .gateway-container {
     padding: 20px 14px;
   }
+
   .benchmark-grid {
     grid-template-columns: 1fr;
   }
+
   .metrics-grid-4 {
     grid-template-columns: repeat(2, 1fr);
   }

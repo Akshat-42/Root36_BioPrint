@@ -1,24 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BioPrint V2 | Account Registration & Calibration</title>
-  <meta name="description" content="Register your cryptographic identity and calibrate your behavioral biometric baseline across universal typing dynamics and psychomotor kinematics.">
-  
+  <meta name="description"
+    content="Register your cryptographic identity and calibrate your behavioral biometric baseline across universal typing dynamics and psychomotor kinematics.">
+
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <!-- Top Navigation Header -->
   <header class="app-header">
     <a href="index.html" class="brand-container">
       <div class="brand-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2a10 10 0 0 0-10 10c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
+          <path
+            d="M12 2a10 10 0 0 0-10 10c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z" />
         </svg>
       </div>
       <div class="brand-text">
-        <span class="brand-title">BIOPRINT <span class="badge-v2">V2</span></span>
+        <span class="brand-title">BIOPRINT <span class="badge-v2">V1</span></span>
         <span class="brand-subtitle">Behavioral Biometrics Registration</span>
       </div>
     </a>
@@ -66,12 +70,14 @@
         <!-- Default Blank Username -->
         <div class="form-group">
           <label for="reg-username">Username Identifier</label>
-          <input type="text" id="reg-username" class="input-text" placeholder="Choose a unique username..." value="" autocomplete="off" required>
+          <input type="text" id="reg-username" class="input-text" placeholder="Choose a unique username..." value=""
+            autocomplete="off" required>
         </div>
 
         <div class="form-group">
           <label for="reg-password">Master Password</label>
-          <input type="password" id="reg-password" class="input-text" placeholder="Enter secure password (min 6 characters)..." autocomplete="off" required>
+          <input type="password" id="reg-password" class="input-text"
+            placeholder="Enter secure password (min 6 characters)..." autocomplete="off" required>
           <div class="password-strength-bar">
             <div class="strength-fill" id="strength-fill"></div>
           </div>
@@ -82,7 +88,8 @@
             <label for="reg-confirm-password">Confirm Master Password</label>
             <span class="match-indicator" id="password-match-tag">Matching: Pending</span>
           </div>
-          <input type="password" id="reg-confirm-password" class="input-text" placeholder="Re-enter password to confirm..." autocomplete="off" required>
+          <input type="password" id="reg-confirm-password" class="input-text"
+            placeholder="Re-enter password to confirm..." autocomplete="off" required>
         </div>
 
         <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
@@ -99,7 +106,8 @@
         <span class="card-tag">STEP 2 OF 3</span>
         <h2 class="card-title">Dynamic "Saccade & Track" Shape Calibration</h2>
         <p class="card-subtitle">
-          Drag each shape along its guided track through the visual alignment detour notch into its matching target slot. This measures your ocular-motor saccadic pauses, macro-velocity curves, and 8–12 Hz involuntary tremor.
+          Drag each shape along its guided track through the visual alignment detour notch into its matching target
+          slot. This measures your ocular-motor saccadic pauses, macro-velocity curves, and 8–12 Hz involuntary tremor.
         </p>
       </div>
 
@@ -111,80 +119,91 @@
         <div class="hud-item">Tremor (8-12Hz): <span id="drag-tremor-live" class="hud-val">Active</span></div>
       </div>
 
-      <!-- Trajectory Overlay Canvas -->
+      <!-- Trajectory Overlay Arena -->
       <div class="saccade-track-arena" id="enroll-drag-arena" style="height: 290px; position: relative;">
-        <canvas id="drag-trajectory-canvas" class="drag-canvas-overlay"></canvas>
-
         <div class="saccade-lanes-container" id="enroll-saccade-lanes" style="padding: 12px;">
           <!-- Lane 1: Circle -->
           <div class="saccade-lane" id="lane-circle" data-notch-dir="up">
-            <div class="draggable-shape" id="shape-circle" data-shape="circle" data-target="slot-circle" touch-action="none">
+            <div class="draggable-shape" id="shape-circle" data-shape="circle" data-target="slot-circle"
+              touch-action="none">
               <svg viewBox="0 0 50 50" class="shape-svg">
-                <circle cx="25" cy="25" r="20" fill="#2563eb" stroke="#60a5fa" stroke-width="2"/>
+                <circle cx="25" cy="25" r="20" fill="#2563eb" stroke="#60a5fa" stroke-width="2" />
               </svg>
             </div>
 
             <div class="slider-rail-guide">
               <svg viewBox="0 0 500 70" preserveAspectRatio="none">
-                <path d="M 40 35 L 180 35 Q 220 35 235 15 Q 250 2 265 15 Q 280 35 320 35 L 460 35" fill="none" stroke="#25334d" stroke-width="3" stroke-dasharray="6 4"/>
-                <circle cx="250" cy="10" r="5" fill="#3b82f6"/>
-                <text x="250" y="28" fill="#3b82f6" font-size="9" font-family="'Open Sans', sans-serif" font-weight="600" text-anchor="middle">NOTCH ▲</text>
+                <path d="M 40 35 L 180 35 Q 220 35 235 15 Q 250 2 265 15 Q 280 35 320 35 L 460 35" fill="none"
+                  stroke="#25334d" stroke-width="3" stroke-dasharray="6 4" />
+                <circle cx="250" cy="10" r="5" fill="#3b82f6" />
+                <text x="250" y="28" fill="#3b82f6" font-size="9" font-family="'Open Sans', sans-serif"
+                  font-weight="600" text-anchor="middle">NOTCH ▲</text>
               </svg>
             </div>
 
             <div class="shape-slot" id="slot-circle" data-accept="circle">
               <svg viewBox="0 0 50 50" class="shape-svg" style="opacity: 0.4;">
-                <circle cx="25" cy="25" r="20" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 3"/>
+                <circle cx="25" cy="25" r="20" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 3" />
               </svg>
             </div>
           </div>
 
           <!-- Lane 2: Triangle -->
           <div class="saccade-lane" id="lane-triangle" data-notch-dir="down">
-            <div class="draggable-shape" id="shape-triangle" data-shape="triangle" data-target="slot-triangle" touch-action="none">
+            <div class="draggable-shape" id="shape-triangle" data-shape="triangle" data-target="slot-triangle"
+              touch-action="none">
               <svg viewBox="0 0 50 50" class="shape-svg">
-                <polygon points="25,5 45,45 5,45" fill="#10b981" stroke="#34d399" stroke-width="2"/>
+                <polygon points="25,5 45,45 5,45" fill="#10b981" stroke="#34d399" stroke-width="2" />
               </svg>
             </div>
 
             <div class="slider-rail-guide">
               <svg viewBox="0 0 500 70" preserveAspectRatio="none">
-                <path d="M 40 35 L 180 35 Q 220 35 235 55 Q 250 68 265 55 Q 280 35 320 35 L 460 35" fill="none" stroke="#25334d" stroke-width="3" stroke-dasharray="6 4"/>
-                <circle cx="250" cy="60" r="5" fill="#10b981"/>
-                <text x="250" y="50" fill="#10b981" font-size="9" font-family="'Open Sans', sans-serif" font-weight="600" text-anchor="middle">NOTCH ▼</text>
+                <path d="M 40 35 L 180 35 Q 220 35 235 55 Q 250 68 265 55 Q 280 35 320 35 L 460 35" fill="none"
+                  stroke="#25334d" stroke-width="3" stroke-dasharray="6 4" />
+                <circle cx="250" cy="60" r="5" fill="#10b981" />
+                <text x="250" y="50" fill="#10b981" font-size="9" font-family="'Open Sans', sans-serif"
+                  font-weight="600" text-anchor="middle">NOTCH ▼</text>
               </svg>
             </div>
 
             <div class="shape-slot" id="slot-triangle" data-accept="triangle">
               <svg viewBox="0 0 50 50" class="shape-svg" style="opacity: 0.4;">
-                <polygon points="25,5 45,45 5,45" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 3"/>
+                <polygon points="25,5 45,45 5,45" fill="none" stroke="#94a3b8" stroke-width="2"
+                  stroke-dasharray="4 3" />
               </svg>
             </div>
           </div>
 
           <!-- Lane 3: Square -->
           <div class="saccade-lane" id="lane-square" data-notch-dir="up">
-            <div class="draggable-shape" id="shape-square" data-shape="square" data-target="slot-square" touch-action="none">
+            <div class="draggable-shape" id="shape-square" data-shape="square" data-target="slot-square"
+              touch-action="none">
               <svg viewBox="0 0 50 50" class="shape-svg">
-                <rect x="7" y="7" width="36" height="36" rx="4" fill="#f59e0b" stroke="#fbbf24" stroke-width="2"/>
+                <rect x="7" y="7" width="36" height="36" rx="4" fill="#f59e0b" stroke="#fbbf24" stroke-width="2" />
               </svg>
             </div>
 
             <div class="slider-rail-guide">
               <svg viewBox="0 0 500 70" preserveAspectRatio="none">
-                <path d="M 40 35 L 180 35 Q 220 35 235 15 Q 250 2 265 15 Q 280 35 320 35 L 460 35" fill="none" stroke="#25334d" stroke-width="3" stroke-dasharray="6 4"/>
-                <circle cx="250" cy="10" r="5" fill="#f59e0b"/>
-                <text x="250" y="28" fill="#f59e0b" font-size="9" font-family="'Open Sans', sans-serif" font-weight="600" text-anchor="middle">NOTCH ▲</text>
+                <path d="M 40 35 L 180 35 Q 220 35 235 15 Q 250 2 265 15 Q 280 35 320 35 L 460 35" fill="none"
+                  stroke="#25334d" stroke-width="3" stroke-dasharray="6 4" />
+                <circle cx="250" cy="10" r="5" fill="#f59e0b" />
+                <text x="250" y="28" fill="#f59e0b" font-size="9" font-family="'Open Sans', sans-serif"
+                  font-weight="600" text-anchor="middle">NOTCH ▲</text>
               </svg>
             </div>
 
             <div class="shape-slot" id="slot-square" data-accept="square">
               <svg viewBox="0 0 50 50" class="shape-svg" style="opacity: 0.4;">
-                <rect x="7" y="7" width="36" height="36" rx="4" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 3"/>
+                <rect x="7" y="7" width="36" height="36" rx="4" fill="none" stroke="#94a3b8" stroke-width="2"
+                  stroke-dasharray="4 3" />
               </svg>
             </div>
           </div>
         </div>
+        <!-- Trajectory Overlay Canvas (Positioned above lanes) -->
+        <canvas id="drag-trajectory-canvas" class="drag-canvas-overlay"></canvas>
       </div>
 
       <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
@@ -200,7 +219,9 @@
         <span class="card-tag">STEP 3 OF 3</span>
         <h2 class="card-title">Typing Calibration (Universal Keystroke Dynamics)</h2>
         <p class="card-subtitle">
-          Type naturally for 15 seconds. You can use Backspace to correct mistakes or return to previous words. BioPrint extracts your universal psychomotor profile: QWERTY cross-hand vs same-hand ratio (R_hand), key cluster dwell matrix, spacebar latency, and error dynamics.
+          Type naturally for 15 seconds. You can use Backspace to correct mistakes or return to previous words. BioPrint
+          extracts your universal psychomotor profile: QWERTY cross-hand vs same-hand ratio (R_hand), key cluster dwell
+          matrix, spacebar latency, and error dynamics.
         </p>
       </div>
 
@@ -233,7 +254,8 @@
         <div class="monkeytype-word-arena" id="monkeytype-arena" tabindex="0">
           <div class="monkeytype-caret" id="monkeytype-caret"></div>
           <div class="monkeytype-words-wrap" id="monkeytype-words-wrap"></div>
-          <input type="text" id="monkeytype-hidden-input" class="hidden-typing-input" autocomplete="off" spellcheck="false">
+          <input type="text" id="monkeytype-hidden-input" class="hidden-typing-input" autocomplete="off"
+            spellcheck="false">
         </div>
 
         <div class="enroll-action-bar">
@@ -248,7 +270,8 @@
     <!-- Registration Success & Baseline Metrics Summary Card -->
     <div class="card hidden" id="card-complete">
       <div style="text-align: center; padding: 20px 0;">
-        <div style="width: 48px; height: 48px; border-radius: 50%; background-color: var(--success-subtle); color: var(--success); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px;">
+        <div
+          style="width: 48px; height: 48px; border-radius: 50%; background-color: var(--success-subtle); color: var(--success); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px;">
           ✓
         </div>
         <h2 class="card-title">Behavioral Profile Successfully Calibrated</h2>
@@ -269,4 +292,5 @@
 
   <script src="app.js"></script>
 </body>
+
 </html>

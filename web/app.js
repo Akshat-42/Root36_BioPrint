@@ -1215,6 +1215,11 @@ function initAccountSetup() {
       nextCard.classList.remove("step-enter");
       void nextCard.offsetWidth;
       nextCard.classList.add("step-enter");
+
+      if (nextId === "card-shapes" && typeof window.resizeMotorCanvas === "function") {
+        window.resizeMotorCanvas();
+      }
+
       setTimeout(() => nextCard.classList.remove("step-enter"), 350);
     }, 220);
   }
@@ -1230,7 +1235,6 @@ function initAccountSetup() {
     if (step2) step2.classList.add("active");
 
     state.motor.renderStartTime = performance.now();
-    if (typeof window.resizeMotorCanvas === "function") window.resizeMotorCanvas();
   });
 }
 
@@ -1246,15 +1250,33 @@ function initScrambledMotorCalibration() {
 
   function resizeCanvas() {
     const rect = arena.getBoundingClientRect();
-    canvas.width = Math.round(rect.width);
-    canvas.height = Math.round(rect.height);
-    renderMotorTrajectories();
+    if (rect.width > 0 && rect.height > 0) {
+      if (canvas.width !== Math.round(rect.width) || canvas.height !== Math.round(rect.height)) {
+        canvas.width = Math.round(rect.width);
+        canvas.height = Math.round(rect.height);
+      }
+      renderMotorTrajectories();
+    }
   }
   window.resizeMotorCanvas = resizeCanvas;
   window.addEventListener("resize", resizeCanvas);
+
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(() => {
+      resizeCanvas();
+    });
+    ro.observe(arena);
+  }
   resizeCanvas();
 
   function renderMotorTrajectories() {
+    if (canvas.width === 0 || canvas.height === 0) {
+      const rect = arena.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        canvas.width = Math.round(rect.width);
+        canvas.height = Math.round(rect.height);
+      }
+    }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     state.motor.recordedDrags.forEach(d => {
       if (d.trajectory && d.trajectory.length > 1) {
@@ -1264,7 +1286,9 @@ function initScrambledMotorCalibration() {
           ctx.lineTo(d.trajectory[i].x, d.trajectory[i].y);
         }
         ctx.strokeStyle = "#10b981";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
         ctx.stroke();
       }
     });
@@ -1277,7 +1301,9 @@ function initScrambledMotorCalibration() {
         ctx.lineTo(traj[i].x, traj[i].y);
       }
       ctx.strokeStyle = "#3b82f6";
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
       ctx.stroke();
     }
   }
@@ -1289,6 +1315,12 @@ function initScrambledMotorCalibration() {
       const arenaRect = arena.getBoundingClientRect();
       const elRect = shapeEl.getBoundingClientRect();
       const shapeType = shapeEl.getAttribute("data-shape");
+
+      // Ensure canvas is properly sized to arena dimensions
+      if (arenaRect.width > 0 && (canvas.width !== Math.round(arenaRect.width) || canvas.height !== Math.round(arenaRect.height))) {
+        canvas.width = Math.round(arenaRect.width);
+        canvas.height = Math.round(arenaRect.height);
+      }
 
       const parentLane = shapeEl.closest(".saccade-lane");
       const laneRect = parentLane ? parentLane.getBoundingClientRect() : arenaRect;
@@ -1328,6 +1360,13 @@ function initScrambledMotorCalibration() {
 
       const now = performance.now();
       const arenaRect = arena.getBoundingClientRect();
+
+      // Ensure canvas is properly sized to arena dimensions
+      if (arenaRect.width > 0 && (canvas.width !== Math.round(arenaRect.width) || canvas.height !== Math.round(arenaRect.height))) {
+        canvas.width = Math.round(arenaRect.width);
+        canvas.height = Math.round(arenaRect.height);
+      }
+
       const coalesced = (e.getCoalescedEvents && e.getCoalescedEvents().length > 0) ? e.getCoalescedEvents() : [e];
       coalesced.forEach(ev => {
         state.motor.activeDrag.trajectory.push({

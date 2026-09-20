@@ -1,205 +1,254 @@
 # BioPrint V2: Hybrid Behavioral Biometric Authentication Engine
 
-BioPrint V2 is a continuous, multi-modal behavioral biometric authentication engine engineered for sub-50ms verification. It pairs cryptographic **Argon2id salted password hashing** with **universal touch-typing dynamics** and **psychomotor kinematics**, eliminating rigid static passphrases while delivering explainable anomaly detection ($>2.5\sigma$ deviations).
+BioPrint V2 is a multi-modal behavioral biometric authentication engine engineered for sub-50ms continuous verification. It couples cryptographic **Argon2id salted password hashing** with **universal touch-typing dynamics** and **psychomotor kinematics**, eliminating static passphrases while delivering explainable anomaly detection ($>2.5\sigma$ deviations) under a strict **$\ge 70.0\%$ pass threshold**.
 
 ---
 
-## Key V2 Capabilities
+## Key Capabilities
 
-1. **Cryptographic Identity Layer**:
-   - Master password with double confirmation and Argon2id salted hashing (no plaintext stored).
-   - Instant cryptographic verification before biometric evaluation.
+1. **Cryptographic Security Layer**:
+   - Master password with double confirmation and **Argon2id salted hashing** (`argon2-cffi`).
+   - Plaintext passwords are never stored.
+   - Instant cryptographic rejection on invalid credentials before biometric evaluation.
 
-2. **Scrambled Shape-Matching Motor Calibration (Top/Bottom Row)**:
-   - Top row: 3 source shapes (Circle, Triangle, Square).
-   - Bottom row: Target outline slots placed in **scrambled, non-aligned positions** (e.g., Square slot under Circle, Circle slot under Triangle, Triangle slot under Square).
-   - Measures non-linear diagonal trajectories, path tortuosity ($\tau = \frac{L_{\text{actual}}}{D_{\text{straight}}} \ge 1.0$), velocity curves, and docking release latency ($T_{\text{dock}}$).
+2. **Dynamic "Saccade & Track" Shape Calibration**:
+   - Multi-lane guided calibration tracks (Circle, Triangle, Square) featuring visual alignment detour notches (Notch UP / Notch DOWN).
+   - Measures ocular-motor saccadic pauses (foveal visual verification deceleration dip), macro-velocity curves ($v_{\text{macro}} = L / \Delta t$), path tortuosity ($\tau = \frac{L_{\text{actual}}}{D_{\text{straight}}} \ge 1.0$), docking release dwell latency ($T_{\text{dock}}$), drop drift offset, and 8–12 Hz physiological involuntary micro-tremor.
 
-3. **Monkeytype-Style 30-Word Dynamic Typing Calibration**:
-   - 30-word dynamic English streaming test with active-word/letter highlighting (correct: green, error: red, active: caret blink).
-   - Universal psychomotor features:
+3. **Monkeytype-Style Dynamic Typing Calibration**:
+   - 15-second dynamic English text stream with active character and word highlighting.
+   - Full backspace correction support across character and word boundaries.
+   - Extracts universal psychomotor features:
      - **QWERTY Hand-Switch Ratio ($R_{\text{hand}} = \frac{\bar{T}_{\text{cross}}}{\bar{T}_{\text{same}}}$)**: skilled touch typists exhibit $R_{\text{hand}} \approx 0.50 - 0.75$, while hunt-and-peck typists or bots have $R_{\text{hand}} \ge 1.0$.
      - **Key Cluster Dwell Matrix**: Dwell distributions for vowels, top, home, and bottom rows.
      - **Spacebar Saccade Latency ($T_{\text{space}}$)**: Word boundary cognitive transition delay.
      - **Inter-Keystroke Interval Entropy ($CV = \frac{\sigma}{\mu}$)**: Neuromuscular rhythmic variance.
      - **Error Dynamics**: Backspace frequency and typo recovery delay.
 
-4. **Authentication Terminal & Dynamic 2D Offset Dock**:
-   - Verification Natural Identity Pangram: *"Quick foxes jump over lazy brown dogs"*.
-   - Dynamic 2D Offset Dock: Submission target dynamically shifts position within $X \pm 80\text{px}, Y \pm 50\text{px}$ to defeat hardcoded cursor macros.
-   - Draggable security token replaces traditional submit buttons.
-   - Sub-50ms execution latency guarantee with itemized explainability diagnostics ($Z > 2.5\sigma$).
+4. **Authentication Gateway & Scaled Saccade & Track Slider**:
+   - Centered login gateway with master password keystroke timing and verification pangram typing (*"Quick foxes jump over lazy brown dogs"*).
+   - Full-scale **Dynamic Saccade & Track Verification Slider** ($520\text{px} \times 130\text{px}$) with an aligned detour notch rail, toggleable detour geometry, and live velocity/pause/tremor HUD.
+   - Sub-50ms execution latency with itemized explainability diagnostics ($Z > 2.5\sigma$).
+
+5. **Diagnostic Benchmark & Impostor Attack Suite**:
+   - Built-in attack simulator testing 6 distinct real-world attack vectors against the $\ge 70.0\%$ pass threshold:
+     - **Legitimate User Auth**: Matching password + touch-typing cadence & saccade pause ($\ge 70\%$).
+     - **Leaked Password + Cadence Impostor**: Correct password, but hunt-and-peck typing ($R_{\text{hand}} > 1.25$).
+     - **Invalid Password Credential**: Immediate cryptographic rejection ($0\%$).
+     - **Linear Zero-Jitter Cursor Bot**: Collinear synthetic mouse path without natural micro-jitter.
+     - **Instant Drag Teleportation**: Zero intermediate pointer events ($<15\text{ms}$ hold duration).
+     - **Untrusted Script Injection**: Synthetic DOM event dispatch (`event.isTrusted === false`).
+
+6. **Dedicated Access Granted Dashboard**:
+   - Authenticated session handoff via `sessionStorage`.
+   - Comprehensive telemetry comparison table, signal score breakdown, and collapsible explainability audit log.
 
 ---
 
 ## Architecture Overview
 
-The system consists of three decoupled components:
+BioPrint V2 uses a decoupled client-server architecture:
 
 ```
-BioPrint/
-├── backend/       # FastAPI server, Argon2id auth, biometrics math engine, and SQLite database
-├── extension/     # Chrome Manifest V3 extension sentinel (isTrusted & webdriver integrity)
-└── web/           # Zero-framework Vanilla HTML5/CSS3/JavaScript client application
+Root36/
+├── backend/                  # FastAPI REST server, Argon2id crypto, biometrics engine, SQLite DB
+│   ├── app.py                # FastAPI application, REST endpoints, and static asset serving
+│   ├── biometrics.py         # Baseline modeling, Z-score math, bot heuristics, Argon2id hashing
+│   ├── database.py           # SQLAlchemy SQLite engine & session management
+│   ├── models.py             # Pydantic schemas & SQLAlchemy ORM models
+│   ├── requirements.txt      # Python dependencies
+│   └── test_biometrics.py    # Automated test suite (8 verification test cases)
+├── web/                      # Multi-page client application
+│   ├── index.html            # Centered Login Gateway & Security Benchmark Simulator
+│   ├── signup.html           # 3-Step Registration & Calibration Wizard
+│   ├── dashboard.html        # Access Granted Dashboard & Telemetry Audit View
+│   ├── app.js                # Frontend controller, drag kinematics, Monkeytype engine, API client
+│   └── style.css             # Minimalist responsive design system
+├── extension/                # Optional Chrome Manifest V3 extension sentinel
+│   ├── manifest.json         # Manifest V3 configuration
+│   ├── background.js         # Background service worker & badge management
+│   ├── content.js            # Passive microsecond telemetry listener & capture-phase interceptor
+│   └── popup.html / popup.js # Toolbar popup connectivity monitor
+└── bioprint.db               # Persistent SQLite database storing enrolled profiles and audit logs
 ```
 
 ---
 
-## Detailed File-by-File Breakdown
+## Technical Specifications & Mathematical Models
 
-### 1. `backend/` (Telemetry & Biometrics Processing Engine)
+### 1. Argon2id Password Hashing
+Passwords are salted with a 16-byte cryptographically secure random salt and hashed using Argon2id (`argon2-cffi`):
+$$\text{Hash} = \text{Argon2id}(P, S, \text{time\_cost}=2, \text{memory\_cost}=65536, \text{parallelism}=1)$$
 
-* **[`backend/app.py`](file:///d:/Code/Root36/backend/app.py)**
-  * The main FastAPI application server.
-  * Configures Cross-Origin Resource Sharing (CORS) for local web clients and browser extensions.
-  * Mounts the `web/` directory at `/` to serve the web application directly.
-  * Exposes the REST API endpoints:
-    * `GET /api/health` — Returns service status and engine version.
-    * `POST /api/enroll` — Compiles 3–5 multi-sample calibration telemetry vectors (including drag-and-drop baseline distributions), enforces standard deviation floors ($\sigma_{\min} = 15\text{ms}$), and persists user profiles in SQLite.
-    * `POST /api/authenticate` & `POST /api/verify` — Evaluates single login vectors with drag gestures and/or keystrokes in $<50\text{ms}$, checks bot heuristics, computes $Z$-score deviations against baseline, logs audit records, and returns authentication verdicts.
-    * `GET /api/users` — Lists enrolled usernames, sample counts, and timestamps.
-    * `GET /api/user/{user_id}/baseline` — Returns complete profile distributions ($\mu, \sigma$) for visualization.
-    * `POST /api/reset` — Clears users, profiles, and audit records for fresh demonstrations.
+### 2. Keystroke Dynamics Matching
+Keystroke transitions are evaluated against the enrolled user's baseline distributions ($\mu_i, \sigma_i$ with standard deviation floor $\sigma_{\min} = 15\text{ms}$):
+$$Z_i = \frac{|T_i - \mu_i|}{\sigma_i}$$
+$$\text{Score}_{\text{keystroke}} = 100 \cdot \exp\left(-\frac{\bar{Z}}{2}\right)$$
 
-* **[`backend/biometrics.py`](file:///d:/Code/Root36/backend/biometrics.py)**
-  * The core scientific and mathematical engine.
-  * **Baseline Compilation (`compile_baseline`)**:
-    * Extracts individual key dwell times ($T_{\text{dwell}} = T_{\text{up}} - T_{\text{down}}$) and transition flight times ($T_{\text{flight}} = T_{\text{down}, i+1} - T_{\text{up}, i}$).
-    * Enforces standard deviation floors ($\sigma_{\min} = 15\text{ms}$) to prevent division-by-zero on consistent typists.
-    * Compiles drag dynamics distributions ($\mu, \sigma$) for mean velocity, trajectory directness ratio, drop micro-drift, hold duration, and initial drag latency.
-    * Computes mouse velocity, acceleration, jerk, and tortuosity distributions, plus Fitts's Law linear regression ($MT = a + b \cdot ID$).
-  * **Bot Heuristic Detection (`detect_bot_anomalies`)**:
-    * Synthetic event detection via DOM `isTrusted == False`.
-    * Instant drag teleportation detection ($T_{\text{hold}} < 15\text{ms}$ or $<3$ trajectory samples across $>50\text{px}$).
-    * Impossible keypress dwell times ($<10\text{ms}$).
-    * Robotic cadence check (dwell variance $\sigma < 0.8\text{ms}$).
-    * Linear trajectory detection (lateral micro-jitter $\sigma < 0.15\text{px}$).
-  * **Keystroke Deviation Matcher (`evaluate_keystroke_dynamics`)**:
-    * Computes transition $Z$-scores ($Z_i = \frac{|T_i - \mu_i|}{\sigma_i}$) and composite score:
-      $$\text{Score}_{\text{keystroke}} = 100 \cdot \exp\left(-\frac{\bar{Z}}{2}\right)$$
-    * Highlights any transition where $Z_i > 2.5\sigma$ in human-readable explainability diagnostics.
-  * **Drag Dynamics Matcher (`evaluate_drag_dynamics`)**:
-    * Computes feature-wise $Z$-scores for velocity, directness ratio, drop drift, hold duration, and initial latency:
-      $$\text{Score}_{\text{drag}} = 100 \cdot \exp\left(-\frac{\bar{Z}_{\text{drag}}}{3.0}\right)$$
-  * **Motor Kinematics Matcher (`evaluate_motor_kinematics`)**:
-    * Computes path tortuosity ($\frac{\text{Length}}{\text{Displacement}}$), velocity, acceleration, and jerk.
-    * Validates approach time against Fitts's Law ($MT = a + b \log_2(2D/W)$).
-  * **Decision Fusion (`verify`)**:
-    * Dynamically balances weights depending on modalities present:
-      * When drag gestures are provided: Keystroke Dynamics ($50\%$), Drag Dynamics ($35\%$), Motor Kinematics ($15\%$).
-      * Legacy/fallback mode: Keystroke Dynamics ($60\%$), Motor Kinematics ($40\%$).
-    * Access is granted if composite score $\ge 70.0\%$. Bot detections immediately zero the score.
+### 3. Saccade & Track Kinematics Matching
+Evaluates macro-velocity, saccadic pause deceleration dip ratio at the notch ($D_{\text{dip}} = 1 - \frac{v_{\text{notch}}}{v_{\text{approach}}}$), path tortuosity ($\tau$), drop drift offset, and docking release dwell latency ($T_{\text{dock}}$):
+$$\text{Score}_{\text{drag}} = 100 \cdot \exp\left(-\frac{\bar{Z}_{\text{drag}}}{3.0}\right)$$
 
-* **[`backend/database.py`](file:///d:/Code/Root36/backend/database.py)**
-  * SQLite database engine setup using SQLAlchemy.
-  * Configures thread-safe connections with `check_same_thread: False`.
-  * Manages database sessions with the `get_db()` dependency and creates tables on initialization (`init_db()`).
+### 4. 8–12 Hz Physiological Tremor Verification
+Extracts spectral power in the 8–12 Hz band from the high-frequency lateral displacement stream using Fast Fourier Transform (FFT) or Welch's power spectral density to detect human neuromuscular grip micro-tremor and reject linear cursor bots:
+$$P_{\text{tremor}} = \int_{8\,\text{Hz}}^{12\,\text{Hz}} S_{yy}(f)\,df > 0.05$$
 
-* **[`backend/models.py`](file:///d:/Code/Root36/backend/models.py)**
-  * **SQLAlchemy ORM Records**:
-    * `UserRecord` — User identifier, passphrase, sample count, and timestamps.
-    * `BaselineProfileRecord` — Serialized JSON distributions for keystroke, motor, and cognitive profiles.
-    * `VerificationLogRecord` — Immutable audit trail of every verification attempt (verdict, confidence score, latency, and reasons).
-  * **Pydantic Validation Schemas**:
-    * `KeystrokeEvent`, `MouseEvent`, `MotorTargetEvent`, `DragGestureEvent`, `StroopTrialEvent`.
-    * `EnrollmentSample`, `EnrollmentRequest`, `EnrollmentResponse`, `VerificationRequest`, `VerificationResponse`, `SignalsBreakdown`.
-
-* **[`backend/test_biometrics.py`](file:///d:/Code/Root36/backend/test_biometrics.py)**
-  * Comprehensive test suite validating:
-    * Baseline compilation and standard deviation floors.
-    * Multi-shape drag enrollment baseline compilation.
-    * Legitimate single-shape token verification ($\ge 70\%$ confidence, $<50\text{ms}$ latency).
-    * Bot detection heuristics (instant drag teleportation, untrusted events, linear collinear cursor, $<10\text{ms}$ dwell).
-    * Impostor cadence rejection and explainability narrative generation.
-    * Latency benchmarks across 50 iterations ($<0.5\text{ms}$ mean latency).
-
-* **[`backend/requirements.txt`](file:///d:/Code/Root36/backend/requirements.txt)**
-  * Python package dependencies: `fastapi`, `uvicorn`, `pydantic`, `numpy`, `scipy`, `scikit-learn`, and `sqlalchemy`.
+### 5. Multi-Factor Decision Fusion
+$$\text{Composite Score} = 0.50 \cdot \text{Score}_{\text{keystroke}} + 0.35 \cdot \text{Score}_{\text{drag}} + 0.15 \cdot \text{Score}_{\text{motor}}$$
+- **Authentication Threshold**: $\ge 70.0\%$
+- **Bot Detection**: Any detected bot heuristic (`isTrusted === false`, linear path with lateral $\sigma < 0.15\text{px}$, teleportation with $T_{\text{hold}} < 15\text{ms}$) immediately forces the composite score to $0.0\%$.
 
 ---
 
-### 2. `extension/` (Chrome Manifest V3 Sentinel)
+## Installation & Setup Guide
 
-* **[`extension/manifest.json`](file:///d:/Code/Root36/extension/manifest.json)**
-  * Declares Chrome extension metadata, Manifest V3 format, and icon definitions.
-  * Permissions: `activeTab`, `scripting`, `storage`.
-  * Host permissions restricted to `http://localhost:*/*` and `http://127.0.0.1:*/*`.
-  * Registers `background.js` as the service worker and injects `content.js` into local development tabs.
-
-* **[`extension/background.js`](file:///d:/Code/Root36/extension/background.js)**
-  * Background service worker managing extension badge status (`ON`, `OK`, `BLK`).
-  * Proxies API communication between content scripts/popups and the FastAPI backend.
-
-* **[`extension/content.js`](file:///d:/Code/Root36/extension/content.js)**
-  * Injected directly into protected pages.
-  * **Passive microsecond telemetry listeners**: Captures `keydown`, `keyup`, `mousemove`, `pointerdown`, `pointermove`, and `pointerup` using `performance.now()` with `{ capture: true, passive: true }` so DOM rendering is never blocked.
-  * **Synthetic Drag Detection**: Inspects pointer events for `isTrusted === false` and impossible instant drag teleportation (`hold_duration < 15ms`).
-  * **Floating Guard Badge**: Displays a discrete bottom-right HUD badge indicating active protection and live telemetry counters.
-  * **Capture-Phase Interception**: Intercepts form submissions and drag drop completions in the capture phase (`useCapture = true`), bundles telemetry, calls `/api/authenticate`, and permits submission or triggers an in-page explainability security modal.
-
-* **[`extension/popup.html`](file:///d:/Code/Root36/extension/popup.html) & [`extension/popup.js`](file:///d:/Code/Root36/extension/popup.js)**
-  * The toolbar popup interface.
-  * Displays real-time engine connectivity, daemon port (`127.0.0.1:8000`), active heuristic modules, live drag telemetry metrics (directness ratio, drop drift accuracy), and provides an interactive "Ping BioPrint Daemon" button.
-
-* **[`extension/icon[16|48|128].png`](file:///d:/Code/Root36/extension/)**
-  * Brand iconography for the browser toolbar and extension management page.
+### Prerequisites
+- **Python**: Version 3.10 or higher.
+- **pip**: Python package manager.
+- **Web Browser**: Google Chrome, Microsoft Edge, or Mozilla Firefox (modern browser with Pointer Events and Canvas support).
 
 ---
 
-### 3. `web/` (Client Application Interface)
+### Step 1: Clone or Navigate to the Project
 
-* **[`web/index.html`](file:///d:/Code/Root36/web/index.html)**
-  * Dual-view semantic HTML5 interface:
-    * **View 1: Calibration & Enrollment Suite (<45s)**
-      * *Probe 1*: Interactive Multi-Shape Drag Arena (Circle, Square, Triangle docks and target outline slots) with live trajectory overlay canvas and real-time neuromuscular HUD metrics.
-      * *Probe 2*: Stroop cognitive interference test.
-      * *Probe 3*: Keystroke rhythm cadence enrollment with live token stream.
-    * **View 2: Authentication Terminal**
-      * Protected login form with username, passphrase, and Single-Shape "Drag-to-Unlock" Security Token drop zone.
-      * Dropping the token into the matching vault hole triggers instant biometric authentication (`POST /api/authenticate`).
-      * Passphrase helper: `bioprint secure authentication`.
-      * Interactive Attack Simulator:
-        * Legitimate Token Drag & Cadence
-        * Cadence Impostor Drag
-        * Linear Bot Drag
-        * Teleportation Bot Drag
-        * Untrusted DOM Drag
-    * **Real-time Verification Feedback Modal**
-      * Sticky verdict banner, confidence gauge, signal match bars (Keystroke Rhythm, Drag Dynamics, Motor Kinematics), trajectory preview canvas, and diagnostic explainability list.
-
-* **[`web/app.js`](file:///d:/Code/Root36/web/app.js)**
-  * Main frontend application controller:
-    * Coordinates navigation between Calibration and Authentication views.
-    * Implements `initShapeDragEnrollment()` using Pointer Events with `setPointerCapture`, live trajectory canvas rendering, slot collision detection, snap-in translation, HUD stats, and transition to Stroop probe.
-    * Implements `initLoginDragSubmission()` measuring token drag telemetry, snapping to vault hole, and executing `POST /api/authenticate`.
-    * Handles 3-trial typing cadence capture and submits baselines to `/api/enroll`.
-    * Disables Enter-key submission on the passphrase input to guarantee motor/drag telemetry collection.
-    * Runs attack simulations with real-time baseline matching.
-
-* **[`web/style.css`](file:///d:/Code/Root36/web/style.css)**
-  * Cyberpunk glassmorphism design system:
-    * Palette: Dark background (`#070B14`), Neon Cyan (`#00F0FF`), Emerald (`#10B981`), Crimson (`#EF4444`), and Amber (`#F59E0B`).
-    * Typography: **Outfit** (headings), **Plus Jakarta Sans** (body), **JetBrains Mono** (telemetry values).
-    * Glassmorphic drag docks, pulsing outline targets, and snap-in animations (`@keyframes slot-snap`, `@keyframes shake-invalid`).
-    * Bounded modal with scrollable body (`overflow-y: auto`) and custom scrollbars.
-
----
-
-## Quick-Start Instructions
-
-### 1. Start Backend Server
 ```bash
-py -m uvicorn backend.app:app --host 127.0.0.1 --port 8000 --reload
+cd d:/Code/Root36
 ```
-The client UI will be available at: **http://127.0.0.1:8000/**
 
-### 2. Load the Chrome Extension
+---
+
+### Step 2: Set Up a Python Virtual Environment
+
+It is recommended to run BioPrint within an isolated virtual environment:
+
+**On Windows (PowerShell / Command Prompt):**
+```powershell
+python -m venv venv
+.\venv\Scripts\activate
+```
+
+**On Linux / macOS:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+---
+
+### Step 3: Install Required Dependencies
+
+Install the backend Python dependencies using `pip`:
+
+```bash
+pip install -r backend/requirements.txt
+```
+
+#### Core Dependencies Overview:
+| Package | Purpose |
+|---|---|
+| `fastapi` | High-performance asynchronous REST API framework |
+| `uvicorn` | ASGI web server implementation |
+| `pydantic` | Data validation and payload schema enforcement |
+| `numpy` / `scipy` | Mathematical modeling, FFT tremor analysis, and statistics |
+| `scikit-learn` | Dimensionality analysis and baseline regression |
+| `sqlalchemy` | SQLite database ORM and session persistence |
+| `argon2-cffi` | Cryptographic Argon2id password hashing algorithm |
+
+---
+
+### Step 4: Run the Automated Test Suite
+
+Verify that the biometrics math engine, bot heuristics, and Argon2id hashing pass all test assertions:
+
+```bash
+python -m backend.test_biometrics
+```
+
+Expected output:
+```
+=== RUNNING BIOPRINT V2 BIOMETRICS TESTS ===
+[TEST 1] Testing Argon2id Salted Password Hashing... -> PASS
+[TEST 2] Testing Universal Typing Feature Extraction (QWERTY Ergonomics)... -> PASS
+[TEST 3] Testing Scrambled Shape Docking Kinematics... -> PASS
+[TEST 4] Testing Full Enrollment, Salted Hash & Verification Pipeline (<50ms)... -> PASS
+[TEST 5] Benchmarking Verification Latency (50 iterations)... -> PASS (<2ms)
+[TEST 6] Testing Impostor Password Cadence Rejection & Digram Diagnostics... -> PASS
+[TEST 7] Testing Zero Keystrokes Rejection... -> PASS
+[TEST 8] Testing Saccadic Notch Pause & 8-12 Hz Physiological Grip Tremor... -> PASS
+=== ALL BIOPRINT V2 BACKEND TESTS PASSED SUCCESSFULLY! ===
+```
+
+---
+
+### Step 5: Start the BioPrint Backend Server
+
+Launch the Uvicorn ASGI server:
+
+```bash
+python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000 --reload
+```
+
+The server automatically initializes the SQLite schema (`bioprint.db`) and serves both the REST API and the static web frontend.
+
+---
+
+### Step 6: Access the Web Application
+
+Open your browser and navigate to:
+
+- **Login Gateway**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/) (or `http://127.0.0.1:8000/index.html`)
+- **Account Registration & Calibration**: [http://127.0.0.1:8000/signup.html](http://127.0.0.1:8000/signup.html)
+- **Access Granted Dashboard**: [http://127.0.0.1:8000/dashboard.html](http://127.0.0.1:8000/dashboard.html)
+
+---
+
+### Step 7 (Optional): Load the Chrome Extension Sentinel
+
+The optional browser extension acts as a passive microsecond sentinel capturing pointer telemetry and verifying DOM event trust.
+
 1. Open Google Chrome and navigate to `chrome://extensions/`.
-2. Toggle **Developer mode** in the top right.
-3. Click **Load unpacked** and select the `extension/` directory.
-4. Visit `http://127.0.0.1:8000/` — the floating **BioPrint Sentinel** badge will appear in the bottom-right corner.
+2. Enable **Developer mode** using the toggle switch in the top-right corner.
+3. Click **Load unpacked** in the top-left corner.
+4. Select the `extension/` directory within this project.
+5. Navigate to `http://127.0.0.1:8000/` — the floating **BioPrint Sentinel** badge will appear in the bottom-right corner.
 
-### 3. Run the Unit Test Suite
-```bash
-py -m backend.test_biometrics
-```
+---
+
+## User Flow & Testing Instructions
+
+### 1. Register a New Account & Baseline Profile
+1. On the Login Gateway (`http://127.0.0.1:8000/`), click **Create an Account & Calibrate** (or go directly to `signup.html`).
+2. **Step 1: Account Credentials**: Enter a username and master password (minimum 6 characters).
+3. **Step 2: Saccade & Track Shape Calibration**: Drag each of the 3 shapes (Circle, Triangle, Square) across its track through the detour notch into its matching target slot.
+4. **Step 3: Monkeytype Typing Calibration**: Type the 15-word dynamic English stream naturally for 15 seconds. Use backspace to correct mistakes or return to previous words if needed.
+5. **Completion**: Review your compiled baseline distributions and click **Proceed to Login Gateway →**.
+
+### 2. Authenticate Identity
+1. On `index.html`, enter your username and master password.
+2. Type the verification pangram: *"Quick foxes jump over lazy brown dogs"*.
+3. Drag the **SLIDE** token along the track through the detour notch to the **UNLOCK** dock.
+4. The verification modal will display your authentication verdict ($<50\text{ms}$), confidence score ($\ge 70.0\%$), and signal breakdown.
+5. Click **Enter Granted Dashboard →** to view your verified session telemetry.
+
+### 3. Run the Security & Impostor Simulator
+On the login page, scroll to the **Security & Impostor Simulator** grid and test how the engine handles attacks:
+- Click **Legitimate User Auth** $\rightarrow$ verifies with $\ge 70.0\%$ confidence.
+- Click **Leaked Password + Cadence Impostor** $\rightarrow$ rejected due to abnormal cadence and key dwell deviations ($>2.5\sigma$).
+- Click **Invalid Password Credential** $\rightarrow$ rejected immediately ($0\%$).
+- Click **Linear Zero-Jitter Cursor Bot** $\rightarrow$ rejected (zero physiological micro-jitter detected).
+- Click **Instant Drag Teleportation** $\rightarrow$ rejected ($<15\text{ms}$ hold duration).
+- Click **Untrusted Script Injection** $\rightarrow$ rejected (`isTrusted === false`).
+
+---
+
+## REST API Reference
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Service health status and engine version |
+| `POST` | `/api/register` | Registers a user, hashes password with Argon2id, and compiles baseline |
+| `POST` | `/api/verify` | Evaluates login credentials, keystroke cadence, and drag kinematics ($<50\text{ms}$) |
+| `GET` | `/api/users` | Lists enrolled user accounts and sample counts |
+| `GET` | `/api/user/{user_id}/baseline` | Retrieves compiled biometric baseline distributions for a user |
+| `POST` | `/api/reset` | Resets all registered user accounts and baseline data |
+
