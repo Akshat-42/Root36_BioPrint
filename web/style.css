@@ -112,11 +112,11 @@ a:hover {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--primary) 0%, #c8a75e 100%);
+  background: #fadfad;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: #2f2332;
 }
 
 .brand-icon svg {
@@ -497,28 +497,28 @@ label {
   left: 14px;
   width: 80px;
   height: 48px;
-  background: linear-gradient(135deg, var(--primary) 0%, #b9984c 100%);
-  border: 1px solid #b9984c;
+  background: #fadfad;
+  border: 1px solid #f3c98a;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: #ffffff;
+  color: #2f2332;
   cursor: grab;
   z-index: 10;
   user-select: none;
   touch-action: none;
   transition: transform 0.05s ease, background-color 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 6px 16px rgba(109, 79, 160, 0.28);
+  box-shadow: 0 6px 16px rgba(250, 223, 173, 0.28);
 }
 
 .slider-handle:active,
 .slider-handle.is-dragging {
   cursor: grabbing;
-  background: linear-gradient(135deg, var(--primary-hover) 0%, #9d7d36 100%);
+  background: #f2c887;
   transform: scale(1.05);
-  box-shadow: 0 8px 18px rgba(88, 66, 136, 0.34);
+  box-shadow: 0 8px 18px rgba(242, 200, 135, 0.34);
 }
 
 .slider-handle-glyph {
@@ -552,13 +552,13 @@ label {
 
 .slider-dock-target.slot-hover-active {
   border-color: var(--primary);
-  background: linear-gradient(135deg, rgba(109, 79, 160, 0.14), rgba(212, 166, 77, 0.12));
+  background: #fadfad;
   color: var(--text-main);
 }
 
 .slider-dock-target.slot-unlocked {
   border-color: #c89b3e;
-  background: linear-gradient(135deg, rgba(109, 79, 160, 0.18), rgba(212, 166, 77, 0.18));
+  background: #fadfad;
   color: var(--primary);
 }
 
@@ -717,8 +717,8 @@ label {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--primary) 0%, #c7a55a 100%);
-  border: 1px solid #c7a55a;
+  background: #fadfad;
+  border: 1px solid #f0c57d;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -727,15 +727,15 @@ label {
   user-select: none;
   touch-action: none;
   transition: transform 0.05s ease, box-shadow 0.15s ease;
-  box-shadow: 0 6px 16px rgba(109, 79, 160, 0.22);
+  box-shadow: 0 6px 16px rgba(250, 223, 173, 0.22);
 }
 
 .draggable-shape:active,
 .draggable-shape.is-dragging {
   cursor: grabbing;
-  border-color: #9a7b36;
-  background: linear-gradient(135deg, var(--primary-hover) 0%, #b69242 100%);
-  box-shadow: 0 8px 18px rgba(88, 66, 136, 0.3);
+  border-color: #ecbe6a;
+  background: #f2c887;
+  box-shadow: 0 8px 18px rgba(242, 200, 135, 0.3);
 }
 
 .draggable-shape.is-slotted {
@@ -765,12 +765,12 @@ label {
 
 .shape-slot.slot-hover-active {
   border-color: var(--primary);
-  background: linear-gradient(135deg, rgba(109, 79, 160, 0.12), rgba(212, 166, 77, 0.12));
+  background: #fadfad;
 }
 
 .shape-slot.slot-unlocked {
   border-color: #c99d45;
-  background: linear-gradient(135deg, rgba(109, 79, 160, 0.18), rgba(212, 166, 77, 0.18));
+  background: #fadfad;
 }
 
 /* Monkeytype Typing Test Arena */
