@@ -78,23 +78,35 @@ Root36/
 
 ### 1. Argon2id Password Hashing
 Passwords are salted with a 16-byte cryptographically secure random salt and hashed using Argon2id (`argon2-cffi`):
-$$\text{Hash} = \text{Argon2id}(P, S, \text{time\_cost}=2, \text{memory\_cost}=65536, \text{parallelism}=1)$$
+$$
+\text{Hash} = \text{Argon2id}(P, S, \text{time\_cost}=2, \text{memory\_cost}=65536, \text{parallelism}=1)
+$$
 
 ### 2. Keystroke Dynamics Matching
 Keystroke transitions are evaluated against the enrolled user's baseline distributions ($\mu_i, \sigma_i$ with standard deviation floor $\sigma_{\min} = 15\text{ms}$):
-$$Z_i = \frac{|T_i - \mu_i|}{\sigma_i}$$
-$$\text{Score}_{\text{keystroke}} = 100 \cdot \exp\left(-\frac{\bar{Z}}{2}\right)$$
+$$
+Z_i = \frac{|T_i - \mu_i|}{\sigma_i}
+$$
+$$
+\text{Score}_{\text{keystroke}} = 100 \cdot \exp\left(-\frac{\bar{Z}}{2}\right)
+$$
 
 ### 3. Saccade & Track Kinematics Matching
 Evaluates macro-velocity, saccadic pause deceleration dip ratio at the notch ($D_{\text{dip}} = 1 - \frac{v_{\text{notch}}}{v_{\text{approach}}}$), path tortuosity ($\tau$), drop drift offset, and docking release dwell latency ($T_{\text{dock}}$):
-$$\text{Score}_{\text{drag}} = 100 \cdot \exp\left(-\frac{\bar{Z}_{\text{drag}}}{3.0}\right)$$
+$$
+\text{Score}_{\text{drag}} = 100 \cdot \exp\left(-\frac{\bar{Z}_{\text{drag}}}{3.0}\right)
+$$
 
 ### 4. 8–12 Hz Physiological Tremor Verification
 Extracts spectral power in the 8–12 Hz band from the high-frequency lateral displacement stream using Fast Fourier Transform (FFT) or Welch's power spectral density to detect human neuromuscular grip micro-tremor and reject linear cursor bots:
-$$P_{\text{tremor}} = \int_{8\,\text{Hz}}^{12\,\text{Hz}} S_{yy}(f)\,df > 0.05$$
+$$
+P_{\text{tremor}} = \int_{8\,\text{Hz}}^{12\,\text{Hz}} S_{yy}(f)\,df > 0.05
+$$
 
 ### 5. Multi-Factor Decision Fusion
-$$\text{Composite Score} = 0.50 \cdot \text{Score}_{\text{keystroke}} + 0.35 \cdot \text{Score}_{\text{drag}} + 0.15 \cdot \text{Score}_{\text{motor}}$$
+$$
+\text{Composite Score} = 0.50 \cdot \text{Score}_{\text{keystroke}} + 0.35 \cdot \text{Score}_{\text{drag}} + 0.15 \cdot \text{Score}_{\text{motor}}
+$$
 - **Authentication Threshold**: $\ge 70.0\%$
 - **Bot Detection**: Any detected bot heuristic (`isTrusted === false`, linear path with lateral $\sigma < 0.15\text{px}$, teleportation with $T_{\text{hold}} < 15\text{ms}$) immediately forces the composite score to $0.0\%$.
 
