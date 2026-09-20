@@ -1,6 +1,6 @@
-# BioPrint V2: Hybrid Behavioral Biometric Authentication Engine
+# BioPrint: Hybrid Behavioral Biometric Authentication Engine
 
-BioPrint V2 is a multi-modal behavioral biometric authentication engine engineered for sub-50ms continuous verification. It couples cryptographic **Argon2id salted password hashing** with **universal touch-typing dynamics** and **psychomotor kinematics**, eliminating static passphrases while delivering explainable anomaly detection ($>2.5\sigma$ deviations) under a strict **$\ge 70.0\%$ pass threshold**.
+BioPrint: is a multi-modal behavioral biometric authentication engine engineered for sub-50ms continuous verification. It couples cryptographic **Argon2id salted password hashing** with **universal touch-typing dynamics** and **psychomotor kinematics**, eliminating static passphrases while delivering explainable anomaly detection ($>2.5\sigma$ deviations) under a strict **$\ge 70.0\%$ pass threshold**.
 
 ---
 
