@@ -4,7 +4,7 @@
  * Zero neon glow, crisp 1px borders, subtle elevation.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Chango&family=Commissioner:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700;800&family=Slackey&family=Spicy+Rice&display=swap');
 
 :root {
   /* Warm neutral palette with purple and gold accents */
@@ -39,7 +39,8 @@
 
   --font-family: 'Commissioner', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'Commissioner', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-heading: 'Chango', 'Trebuchet MS', sans-serif;
+  --font-heading: 'Spicy Rice', cursive;
+  --font-brand: 'Slackey', cursive;
   --font-subheading: 'Commissioner', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Elevation and Radius */
@@ -132,9 +133,9 @@ a:hover {
 }
 
 .brand-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-brand);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 400;
   letter-spacing: 0.5px;
   color: var(--text-main);
 }
@@ -221,6 +222,46 @@ a:hover {
   padding: 32px 24px 60px;
 }
 
+@keyframes signup-card-enter {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes signup-card-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+
+@keyframes final-score-bounce {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.02);
+  }
+  75% {
+    transform: translateY(3px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* Cards */
 .card {
   background-color: var(--bg-surface);
@@ -230,6 +271,19 @@ a:hover {
   width: 100%;
   padding: 28px;
   margin-bottom: 24px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.card.step-enter {
+  animation: signup-card-enter 0.35s ease-out;
+}
+
+.card.step-exit {
+  animation: signup-card-exit 0.25s ease-in forwards;
+}
+
+#card-complete.final-score-visible {
+  animation: final-score-bounce 0.85s cubic-bezier(0.2, 0.9, 0.2, 1) both;
 }
 
 .card-header {
@@ -249,7 +303,7 @@ a:hover {
 .card-title {
   font-family: var(--font-heading);
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 400;
   color: var(--text-main);
   margin-bottom: 6px;
 }
@@ -914,7 +968,7 @@ label {
 .dashboard-title {
   font-family: var(--font-heading);
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 400;
   color: var(--text-main);
   margin-bottom: 6px;
 }
@@ -1025,7 +1079,7 @@ label {
 
 .modal-verdict-banner {
   padding: 16px 22px;
-  background-color: var(--success-subtle);
+  background-color: #8CFF9E;
   border-bottom: 1px solid rgba(16, 185, 129, 0.25);
   display: flex;
   align-items: center;
@@ -1034,7 +1088,7 @@ label {
 }
 
 .modal-verdict-banner.verdict-blocked {
-  background-color: var(--danger-subtle);
+  background-color: #ff5252;
   border-bottom: 1px solid rgba(239, 68, 68, 0.25);
 }
 

@@ -667,16 +667,18 @@ function displayVerificationModal(verdict, username) {
   const reasons = verdict.explainability_reasons || [];
   if (badgeCount) badgeCount.textContent = `${reasons.length} Anomalies`;
 
-  if (reasons.length > 0) {
-    reasons.forEach((r) => {
+  if (reasonsList) {
+    if (reasons.length > 0) {
+      reasons.forEach((r) => {
+        const li = document.createElement("li");
+        li.textContent = r;
+        reasonsList.appendChild(li);
+      });
+    } else {
       const li = document.createElement("li");
-      li.textContent = r;
+      li.textContent = "All behavioral feature vectors fall within baseline confidence bounds (Z < 2.5σ).";
       reasonsList.appendChild(li);
-    });
-  } else {
-    const li = document.createElement("li");
-    li.textContent = "All behavioral feature vectors fall within baseline confidence bounds (Z < 2.5σ).";
-    reasonsList.appendChild(li);
+    }
   }
 
   modal.style.display = "flex";
@@ -1197,11 +1199,30 @@ function initAccountSetup() {
     }
   });
 
+  function animateSignupCardTransition(currentId, nextId) {
+    const currentCard = document.getElementById(currentId);
+    const nextCard = document.getElementById(nextId);
+    if (!currentCard || !nextCard) return;
+
+    currentCard.classList.remove("step-enter");
+    currentCard.classList.add("step-exit");
+
+    setTimeout(() => {
+      currentCard.classList.add("hidden");
+      currentCard.classList.remove("step-exit");
+
+      nextCard.classList.remove("hidden");
+      nextCard.classList.remove("step-enter");
+      void nextCard.offsetWidth;
+      nextCard.classList.add("step-enter");
+      setTimeout(() => nextCard.classList.remove("step-enter"), 350);
+    }, 220);
+  }
+
   nextBtn.addEventListener("click", () => {
     if (!state.credentials.isValid) return;
 
-    document.getElementById("card-creds").classList.add("hidden");
-    document.getElementById("card-shapes").classList.remove("hidden");
+    animateSignupCardTransition("card-creds", "card-shapes");
 
     const step1 = document.getElementById("step-nav-1");
     const step2 = document.getElementById("step-nav-2");
@@ -1462,8 +1483,23 @@ function initScrambledMotorCalibration() {
   });
 
   function advanceToTypingStep() {
-    document.getElementById("card-shapes").classList.add("hidden");
-    document.getElementById("card-typing").classList.remove("hidden");
+    const currentCard = document.getElementById("card-shapes");
+    const nextCard = document.getElementById("card-typing");
+    if (!currentCard || !nextCard) return;
+
+    currentCard.classList.remove("step-enter");
+    currentCard.classList.add("step-exit");
+
+    setTimeout(() => {
+      currentCard.classList.add("hidden");
+      currentCard.classList.remove("step-exit");
+
+      nextCard.classList.remove("hidden");
+      nextCard.classList.remove("step-enter");
+      void nextCard.offsetWidth;
+      nextCard.classList.add("step-enter");
+      setTimeout(() => nextCard.classList.remove("step-enter"), 350);
+    }, 220);
 
     const step2 = document.getElementById("step-nav-2");
     const step3 = document.getElementById("step-nav-3");
@@ -1775,8 +1811,23 @@ function initMonkeytypeCalibration() {
         state.enrolledUser = data.user_id;
         state.activeBaseline = data.baseline_summary;
 
-        document.getElementById("card-typing").classList.add("hidden");
-        document.getElementById("card-complete").classList.remove("hidden");
+        const currentCard = document.getElementById("card-typing");
+        const completeCard = document.getElementById("card-complete");
+        if (currentCard && completeCard) {
+          currentCard.classList.remove("step-enter");
+          currentCard.classList.add("step-exit");
+
+          setTimeout(() => {
+            currentCard.classList.add("hidden");
+            currentCard.classList.remove("step-exit");
+
+            completeCard.classList.remove("hidden");
+            completeCard.classList.remove("final-score-visible");
+            void completeCard.offsetWidth;
+            completeCard.classList.add("final-score-visible");
+            setTimeout(() => completeCard.classList.remove("final-score-visible"), 900);
+          }, 220);
+        }
 
         renderBaselineMetricsSummary(data.baseline_summary);
       } else {

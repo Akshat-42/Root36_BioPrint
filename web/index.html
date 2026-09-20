@@ -131,7 +131,6 @@
 
       <div class="benchmark-grid">
         <button class="attack-btn" id="sim-legit">
-          <div class="attack-icon">🟢</div>
           <div class="attack-meta">
             <strong>Legitimate User Auth</strong>
             <span>Matching password + touch-typing cadence & saccade pause</span>
@@ -139,7 +138,6 @@
         </button>
 
         <button class="attack-btn" id="sim-cadence-impostor">
-          <div class="attack-icon">⚠️</div>
           <div class="attack-meta">
             <strong>Leaked Password + Cadence Impostor</strong>
             <span>Correct password, but hunt-and-peck typing (R_hand &gt; 1.25)</span>
@@ -147,7 +145,6 @@
         </button>
 
         <button class="attack-btn" id="sim-bad-password">
-          <div class="attack-icon">🔑</div>
           <div class="attack-meta">
             <strong>Invalid Password Credential</strong>
             <span>Incorrect password credential rejected immediately</span>
@@ -155,7 +152,6 @@
         </button>
 
         <button class="attack-btn" id="sim-linear-bot">
-          <div class="attack-icon">🤖</div>
           <div class="attack-meta">
             <strong>Linear Zero-Jitter Cursor Bot</strong>
             <span>Collinear synthetic path without natural motor tremor</span>
@@ -163,7 +159,6 @@
         </button>
 
         <button class="attack-btn" id="sim-teleport-bot">
-          <div class="attack-icon">⚡</div>
           <div class="attack-meta">
             <strong>Instant Drag Teleportation</strong>
             <span>Zero intermediate pointer events (&lt;15ms hold duration)</span>
@@ -171,7 +166,6 @@
         </button>
 
         <button class="attack-btn" id="sim-untrusted">
-          <div class="attack-icon">🛑</div>
           <div class="attack-meta">
             <strong>Untrusted Script Injection</strong>
             <span>Synthetic dispatchEvent (event.isTrusted === false)</span>
@@ -248,16 +242,6 @@
           </div>
         </div>
 
-        <!-- Explainability Diagnostics Section -->
-        <div class="explainability-panel">
-          <div class="explainability-header">
-            <span>Explainability Anomaly Diagnostics (&gt;2.5&sigma;):</span>
-            <span id="exp-badge-count" style="font-weight: 700;">0 Anomalies</span>
-          </div>
-          <ul class="explainability-list" id="modal-explainability-list">
-            <!-- Populated dynamically via JS -->
-          </ul>
-        </div>
       </div>
 
       <!-- Modal Footer Action -->
