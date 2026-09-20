@@ -7,35 +7,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
 :root {
-  /* Slate Single-Tone Palette */
-  --bg-page: #0b0f19;
-  --bg-surface: #131b2e;
-  --bg-surface-subtle: #1a243c;
-  --bg-surface-elevated: #222f4c;
-  --bg-input: #0e1626;
+  /* Warm neutral palette with purple and gold accents */
+  --bg-page: #f7f0e8;
+  --bg-surface: #fffaf5;
+  --bg-surface-subtle: #f2e7dc;
+  --bg-surface-elevated: #f7ead9;
+  --bg-input: #fffdf9;
 
-  --border-subtle: #25334d;
-  --border-medium: #334466;
-  --border-focus: #3b82f6;
+  --border-subtle: #ead7b6;
+  --border-medium: #d7b970;
+  --border-focus: #6d4fa0;
 
-  /* Single-Tone Accents */
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-subtle: rgba(37, 99, 235, 0.12);
+  /* Purple / gold accents */
+  --primary: #6d4fa0;
+  --primary-hover: #584288;
+  --primary-subtle: rgba(109, 79, 160, 0.12);
 
-  --success: #10b981;
-  --success-subtle: rgba(16, 185, 129, 0.12);
+  --success: #4d8f78;
+  --success-subtle: rgba(77, 143, 120, 0.12);
   
-  --warning: #f59e0b;
-  --warning-subtle: rgba(245, 158, 11, 0.12);
+  --warning: #d4a64d;
+  --warning-subtle: rgba(212, 166, 77, 0.15);
 
-  --danger: #ef4444;
-  --danger-subtle: rgba(239, 68, 68, 0.12);
+  --danger: #b76d58;
+  --danger-subtle: rgba(183, 109, 88, 0.12);
 
   /* Typography */
-  --text-main: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-main: #2f2332;
+  --text-secondary: #5d4d65;
+  --text-muted: #7f6c78;
 
   --font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'Open Sans', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -61,7 +61,7 @@
 }
 
 body {
-  background-color: var(--bg-page);
+  background: linear-gradient(180deg, #f9f4ee 0%, #f4ede3 100%);
   color: var(--text-main);
   font-family: var(--font-family);
   font-size: 14px;
@@ -79,7 +79,7 @@ a {
 }
 
 a:hover {
-  color: #60a5fa;
+  color: var(--primary-hover);
   text-decoration: underline;
 }
 
@@ -112,7 +112,7 @@ a:hover {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-md);
-  background-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, #c8a75e 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -239,7 +239,7 @@ a:hover {
   font-weight: 700;
   letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: var(--primary);
+  color: #8a6bbd;
   margin-bottom: 6px;
 }
 
@@ -497,8 +497,8 @@ label {
   left: 14px;
   width: 80px;
   height: 48px;
-  background-color: var(--primary);
-  border: 1px solid #60a5fa;
+  background: linear-gradient(135deg, var(--primary) 0%, #b9984c 100%);
+  border: 1px solid #b9984c;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -509,15 +509,16 @@ label {
   z-index: 10;
   user-select: none;
   touch-action: none;
-  transition: transform 0.05s ease, background-color 0.15s ease;
-  box-shadow: var(--shadow-sm);
+  transition: transform 0.05s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 6px 16px rgba(109, 79, 160, 0.28);
 }
 
 .slider-handle:active,
 .slider-handle.is-dragging {
   cursor: grabbing;
-  background-color: var(--primary-hover);
+  background: linear-gradient(135deg, var(--primary-hover) 0%, #9d7d36 100%);
   transform: scale(1.05);
+  box-shadow: 0 8px 18px rgba(88, 66, 136, 0.34);
 }
 
 .slider-handle-glyph {
@@ -537,28 +538,28 @@ label {
   right: 14px;
   width: 82px;
   height: 50px;
-  border: 2px dashed var(--border-medium);
+  border: 2px dashed #c6a85a;
   border-radius: var(--radius-md);
-  background-color: rgba(14, 22, 38, 0.7);
+  background: rgba(109, 79, 160, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   z-index: 2;
   transition: var(--transition);
 }
 
 .slider-dock-target.slot-hover-active {
   border-color: var(--primary);
-  background-color: var(--primary-subtle);
+  background: linear-gradient(135deg, rgba(109, 79, 160, 0.14), rgba(212, 166, 77, 0.12));
   color: var(--text-main);
 }
 
 .slider-dock-target.slot-unlocked {
-  border-color: var(--success);
-  background-color: var(--success-subtle);
-  color: var(--success);
+  border-color: #c89b3e;
+  background: linear-gradient(135deg, rgba(109, 79, 160, 0.18), rgba(212, 166, 77, 0.18));
+  color: var(--primary);
 }
 
 .dock-glyph {
@@ -716,8 +717,8 @@ label {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
-  background-color: var(--bg-surface-subtle);
-  border: 1px solid var(--border-medium);
+  background: linear-gradient(135deg, var(--primary) 0%, #c7a55a 100%);
+  border: 1px solid #c7a55a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -725,14 +726,16 @@ label {
   z-index: 10;
   user-select: none;
   touch-action: none;
-  transition: transform 0.05s ease;
+  transition: transform 0.05s ease, box-shadow 0.15s ease;
+  box-shadow: 0 6px 16px rgba(109, 79, 160, 0.22);
 }
 
 .draggable-shape:active,
 .draggable-shape.is-dragging {
   cursor: grabbing;
-  border-color: var(--primary);
-  background-color: var(--primary-subtle);
+  border-color: #9a7b36;
+  background: linear-gradient(135deg, var(--primary-hover) 0%, #b69242 100%);
+  box-shadow: 0 8px 18px rgba(88, 66, 136, 0.3);
 }
 
 .draggable-shape.is-slotted {
@@ -750,23 +753,24 @@ label {
   right: 12px;
   width: 48px;
   height: 48px;
-  border: 2px dashed var(--border-medium);
+  border: 2px dashed #d4b164;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
   transition: var(--transition);
+  background: rgba(109, 79, 160, 0.04);
 }
 
 .shape-slot.slot-hover-active {
   border-color: var(--primary);
-  background-color: var(--primary-subtle);
+  background: linear-gradient(135deg, rgba(109, 79, 160, 0.12), rgba(212, 166, 77, 0.12));
 }
 
 .shape-slot.slot-unlocked {
-  border-color: var(--success);
-  background-color: var(--success-subtle);
+  border-color: #c99d45;
+  background: linear-gradient(135deg, rgba(109, 79, 160, 0.18), rgba(212, 166, 77, 0.18));
 }
 
 /* Monkeytype Typing Test Arena */
