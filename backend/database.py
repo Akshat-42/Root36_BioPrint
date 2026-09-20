@@ -32,70 +32,65 @@ def get_db():
 
 
 def init_db():
-    """Creates all database tables and ensures schema integrity without legacy columns."""
-    import sqlite3
-
-    # Migrate SQLite schema if legacy columns (cognitive_baseline_json, passphrase) are present
-    if os.path.exists(DB_PATH):
+    """Creates all database tables and ensures schema integrity."""
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        # 1. Ensure password_hash exists in users
         try:
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
+            conn.execute(text("ALTER TABLE users ADD COLUMN password_hash VARCHAR(256) DEFAULT ''"))
+            conn.commit()
+        except Exception:
+            pass
 
-            # Check baseline_profiles schema
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='baseline_profiles'")
-            if cursor.fetchone():
-                cursor.execute("PRAGMA table_info(baseline_profiles)")
-                bp_cols = [row[1] for row in cursor.fetchall()]
-                if "cognitive_baseline_json" in bp_cols or "keystroke_baseline_json" in bp_cols:
-                    cursor.execute("""
-                        CREATE TABLE IF NOT EXISTS baseline_profiles_v2 (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            user_id VARCHAR(64) NOT NULL UNIQUE,
-                            typing_baseline_json TEXT NOT NULL,
-                            motor_baseline_json TEXT NOT NULL,
-                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            FOREIGN KEY(user_id) REFERENCES users (user_id)
-                        )
-                    """)
-                    cursor.execute("""
-                        INSERT OR IGNORE INTO baseline_profiles_v2 (id, user_id, typing_baseline_json, motor_baseline_json, updated_at)
-                        SELECT id, user_id, 
-                               COALESCE(typing_baseline_json, keystroke_baseline_json, '{}'),
-                               COALESCE(motor_baseline_json, '{}'),
-                               updated_at
-                        FROM baseline_profiles
-                    """)
-                    cursor.execute("DROP TABLE baseline_profiles")
-                    cursor.execute("ALTER TABLE baseline_profiles_v2 RENAME TO baseline_profiles")
+        # Ensure password_valid exists in verification_logs
+        try:
+            conn.execute(text("ALTER TABLE verification_logs ADD COLUMN password_valid BOOLEAN DEFAULT 0"))
+            conn.commit()
+        except Exception:
+            pass
+
+        # 2. Check and clean up baseline_profiles (remove cognitive_baseline_json, keystroke_baseline_json, ensemble_model_json)
+        try:
+            res = conn.execute(text("PRAGMA table_info(baseline_profiles)")).fetchall()
+            cols = [r[1] for r in res]
+            if "cognitive_baseline_json" in cols or "keystroke_baseline_json" in cols or "ensemble_model_json" in cols:
+                # Recreate baseline_profiles table to completely purge NOT NULL / legacy cognitive column constraints
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS baseline_profiles_clean (
+                        id INTEGER PRIMARY KEY,
+                        user_id VARCHAR(64) UNIQUE NOT NULL,
+                        typing_baseline_json TEXT NOT NULL DEFAULT '{}',
+                        motor_baseline_json TEXT NOT NULL DEFAULT '{}',
+                        updated_at DATETIME,
+                        FOREIGN KEY(user_id) REFERENCES users(user_id)
+                    );
+                """))
+                # Copy over persistent user baselines
+                conn.execute(text("""
+                    INSERT OR IGNORE INTO baseline_profiles_clean (id, user_id, typing_baseline_json, motor_baseline_json, updated_at)
+                    SELECT id, user_id, 
+                           COALESCE(typing_baseline_json, '{}'), 
+                           COALESCE(motor_baseline_json, '{}'), 
+                           updated_at 
+                    FROM baseline_profiles;
+                """))
+                conn.execute(text("DROP TABLE baseline_profiles;"))
+                conn.execute(text("ALTER TABLE baseline_profiles_clean RENAME TO baseline_profiles;"))
+                conn.commit()
+        except Exception:
+            pass
+
+        # 3. Check users table for legacy passphrase column and drop it
+        try:
+            res = conn.execute(text("PRAGMA table_info(users)")).fetchall()
+            cols = [r[1] for r in res]
+            if "passphrase" in cols:
+                try:
+                    conn.execute(text("ALTER TABLE users DROP COLUMN passphrase"))
                     conn.commit()
-
-            # Check users schema
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
-            if cursor.fetchone():
-                cursor.execute("PRAGMA table_info(users)")
-                u_cols = [row[1] for row in cursor.fetchall()]
-                if "passphrase" in u_cols:
-                    cursor.execute("""
-                        CREATE TABLE IF NOT EXISTS users_v2 (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            user_id VARCHAR(64) NOT NULL UNIQUE,
-                            password_hash VARCHAR(256) NOT NULL DEFAULT '',
-                            sample_count INTEGER DEFAULT 1,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        )
-                    """)
-                    cursor.execute("""
-                        INSERT OR IGNORE INTO users_v2 (id, user_id, password_hash, sample_count, created_at, updated_at)
-                        SELECT id, user_id, COALESCE(password_hash, passphrase, ''), sample_count, created_at, updated_at
-                        FROM users
-                    """)
-                    cursor.execute("DROP TABLE users")
-                    cursor.execute("ALTER TABLE users_v2 RENAME TO users")
-                    conn.commit()
-
-            conn.close()
-        except Exception as e:
-            print(f"[BioPrint DB Migration] {e}")
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
     Base.metadata.create_all(bind=engine)

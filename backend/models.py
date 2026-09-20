@@ -91,6 +91,13 @@ class DragGestureEvent(BaseModel):
     tortuosity: float = Field(default=1.0, description="Path length / Euclidean distance (>= 1.0)")
     drop_drift_offset: float = Field(default=0.0, description="Radial distance from target hole center (px)")
     target_slot_id: Optional[str] = None
+    track_notch_x: Optional[float] = Field(default=None, description="X coordinate of track notch (px)")
+    track_notch_y: Optional[float] = Field(default=None, description="Y offset of track notch (px)")
+    saccadic_dip_ratio: Optional[float] = Field(default=None, description="Ratio of min velocity at notch to approach peak")
+    saccadic_pause_ms: Optional[float] = Field(default=None, description="Pause duration within notch alignment well (ms)")
+    tremor_8_12hz_ratio: Optional[float] = Field(default=None, description="Spectral power ratio in 8-12 Hz tremor band")
+    tremor_peak_freq: Optional[float] = Field(default=None, description="Dominant tremor frequency peak (Hz)")
+    tremor_rms_jitter: Optional[float] = Field(default=None, description="RMS lateral micro-jitter amplitude (px)")
     trajectory: List[MouseEvent] = Field(default_factory=list)
 
 
@@ -139,7 +146,6 @@ class VerificationRequest(BaseModel):
     keystrokes: List[KeystrokeEvent] = Field(default_factory=list)
     drag_gesture: Optional[DragGestureEvent] = None
     drag_gestures: List[DragGestureEvent] = Field(default_factory=list)
-    button_context: Optional[Dict[str, Any]] = None
 
 
 class SignalsBreakdown(BaseModel):

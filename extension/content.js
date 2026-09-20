@@ -347,20 +347,21 @@
 
   async function executeVerification(form) {
     // Extract credentials from form fields
+    const userInput = form.querySelector("#username, input[name='username'], input[type='text']");
+    const passInput = form.querySelector("#password, input[name='password'], input[type='password']");
+    const userId = userInput ? userInput.value.trim() : "anonymous";
     const password = passInput ? passInput.value : "";
 
     const payload = {
       username: userId,
       user_id: userId,
       password: password,
-      password_keystrokes: telemetry.keystrokes,
       pangram_keystrokes: telemetry.keystrokes,
       keystrokes: telemetry.keystrokes,
       mouse_events: telemetry.mouseEvents,
       token_drag: telemetry.dragGestures.length > 0 ? telemetry.dragGestures[telemetry.dragGestures.length - 1] : null,
       drag_gesture: telemetry.dragGestures.length > 0 ? telemetry.dragGestures[telemetry.dragGestures.length - 1] : null,
       drag_gestures: telemetry.dragGestures,
-      button_context: telemetry.loginButtonContext,
       browser_integrity: {
         is_webdriver: Boolean(navigator.webdriver),
         user_agent: navigator.userAgent,
@@ -436,7 +437,7 @@
         authenticated: false,
         confidence_score: 0,
         latency_ms: 0,
-        signals: { bot_detected: false, password_valid: false, keystroke_rhythm_match: 0, motor_kinematics_match: 0 },
+        signals: { bot_detected: false, keystroke_rhythm_match: 0, motor_kinematics_match: 0 },
         explainability_reasons: [`Backend connection failed (${err.message}). Ensure BioPrint server is running on port 8000.`]
       });
     }

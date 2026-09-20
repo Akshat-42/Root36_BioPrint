@@ -68,7 +68,7 @@ SIGMA_DWELL_FLOOR = 25.0     # Key dwell minimum variance floor (ms)
 SIGMA_FLIGHT_FLOOR = 55.0    # Flight latency minimum variance floor (ms)
 MAX_CONTINUOUS_FLIGHT_MS = 350.0  # Max threshold for continuous typing transition (above this is cognitive pause)
 Z_SCORE_CAP = 3.5            # Winsorization cap to prevent extreme skew
-CONFIDENCE_THRESHOLD = 62.0  # Authentication decision cutoff (%) - accommodates human natural variance
+CONFIDENCE_THRESHOLD = 70.0  # Authentication decision cutoff (%) - strict security threshold
 Z_SCORE_ANOMALY_THRESHOLD = 2.5  # Threshold for explainability diagnostic trigger
 
 
@@ -205,18 +205,183 @@ class BiometricsEngine:
         }
 
     # -------------------------------------------------------------------------
-    # 2. Feature Extraction: Motor Kinematic Dynamics
+    # 2. Feature Extraction: Motor Kinematic Dynamics & Spectral Tremor
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def extract_motor_kinematics(drags: List[DragGestureEvent]) -> Dict[str, float]:
+    def extract_saccadic_notch_pause(
+        trajectory: List[MouseEvent], 
+        notch_x: Optional[float] = None, 
+        notch_y: Optional[float] = None
+    ) -> Tuple[float, float, float]:
         """
-        Extracts psychomotor features from drag-and-drop gestures:
+        Extracts ocular-motor coordination features around track detour notch:
+        - saccadic_dip_ratio: min_velocity_in_notch / max_approach_velocity
+        - saccadic_pause_ms: dwell duration in deceleration valley
+        - approach_deceleration: magnitude of deceleration entering the notch
+        """
+        if len(trajectory) < 4:
+            return 0.45, 75.0, 450.0
+
+        coords = np.array([[m.x, m.y] for m in trajectory], dtype=float)
+        times = np.array([m.t for m in trajectory], dtype=float)
+
+        diffs = np.diff(coords, axis=0)
+        dt = np.diff(times) / 1000.0  # seconds
+        dt = np.where(dt <= 0.0, 0.001, dt)
+
+        step_dists = np.linalg.norm(diffs, axis=1)
+        step_vels = step_dists / dt
+
+        # Determine notch reference X: if not provided, assume halfway through horizontal travel
+        x_start = coords[0, 0]
+        x_end = coords[-1, 0]
+        x_min = min(x_start, x_end)
+        x_max = max(x_start, x_end)
+        x_range = max(1.0, x_max - x_min)
+
+        target_nx = notch_x if (notch_x is not None and x_min <= notch_x <= x_max) else (x_min + 0.50 * x_range)
+
+        # Notch zone: within 20% of travel range around notch X
+        zone_radius = max(20.0, 0.20 * x_range)
+        mid_x = (coords[:-1, 0] + coords[1:, 0]) / 2.0
+
+        in_notch_mask = np.abs(mid_x - target_nx) <= zone_radius
+        before_notch_mask = (mid_x < (target_nx - zone_radius * 0.5)) if x_end > x_start else (mid_x > (target_nx + zone_radius * 0.5))
+
+        v_approach = float(np.max(step_vels[before_notch_mask])) if np.any(before_notch_mask) else float(np.percentile(step_vels, 75))
+        v_approach = max(50.0, v_approach)
+
+        if np.any(in_notch_mask):
+            v_notch = float(np.min(step_vels[in_notch_mask]))
+            dip_ratio = float(min(1.0, v_notch / v_approach))
+            pause_dt = dt[in_notch_mask & (step_vels < 0.65 * v_approach)]
+            raw_pause = float(np.sum(pause_dt) * 1000.0) if len(pause_dt) > 0 else 40.0
+            pause_ms = float(min(300.0, max(25.0, raw_pause)))
+        else:
+            mid_slice = step_vels[int(len(step_vels)*0.2):int(len(step_vels)*0.8)]
+            v_notch = float(np.min(mid_slice)) if len(mid_slice) > 0 else (0.45 * v_approach)
+            dip_ratio = float(min(1.0, v_notch / v_approach))
+            pause_ms = 60.0
+
+        if len(step_vels) >= 3:
+            dv = np.diff(step_vels)
+            neg_dv = dv[dv < 0]
+            decels = np.abs(neg_dv / dt[:-1][dv < 0]) if len(neg_dv) > 0 else np.array([450.0])
+            approach_decel = float(np.median(decels)) if len(decels) > 0 else 450.0
+        else:
+            approach_decel = 450.0
+
+        return round(dip_ratio, 3), round(pause_ms, 1), round(approach_decel, 1)
+
+    @staticmethod
+    def extract_physiological_grip_tremor(
+        trajectory: List[MouseEvent],
+        notch_x: Optional[float] = None
+    ) -> Tuple[float, float, float]:
+        """
+        Extracts involuntary neuromuscular micro-tremor along the perpendicular axis:
+        - tremor_8_12hz_ratio: Relative spectral power in the physiological 8-12 Hz tremor band
+        - tremor_peak_freq: Dominant tremor peak frequency (Hz)
+        - tremor_rms_jitter: RMS amplitude of lateral micro-displacements (px)
+        """
+        if len(trajectory) < 8:
+            return 0.45, 10.0, 0.75
+
+        coords = np.array([[m.x, m.y] for m in trajectory], dtype=float)
+        times = np.array([m.t for m in trajectory], dtype=float)
+
+        sort_idx = np.argsort(times)
+        coords = coords[sort_idx]
+        times = times[sort_idx]
+
+        dur = times[-1] - times[0]
+        if dur < 100.0:
+            return 0.40, 10.0, 0.65
+
+        dx_total = abs(coords[-1, 0] - coords[0, 0])
+        dy_total = abs(coords[-1, 1] - coords[0, 1])
+
+        # Exclude notch region to measure pure horizontal drag tremor
+        x_min = min(coords[0, 0], coords[-1, 0])
+        x_max = max(coords[0, 0], coords[-1, 0])
+        x_range = max(1.0, x_max - x_min)
+        nx = notch_x if (notch_x is not None and x_min <= notch_x <= x_max) else (x_min + 0.50 * x_range)
+        notch_radius = max(25.0, 0.18 * x_range)
+
+        # Select longest contiguous straight segment outside notch to avoid time-gap interpolation artifacts
+        x_dist = np.abs(coords[:, 0] - nx) if dx_total >= dy_total else np.abs(coords[:, 1] - nx)
+        outside_indices = np.where(x_dist > notch_radius)[0]
+
+        if len(outside_indices) >= 8:
+            # Group consecutive indices into contiguous segments
+            diffs = np.diff(outside_indices)
+            split_points = np.where(diffs > 1)[0] + 1
+            segments = np.split(outside_indices, split_points)
+            best_seg = max(segments, key=len)
+            if len(best_seg) >= 6:
+                perp = coords[best_seg, 1 if dx_total >= dy_total else 0]
+                t_sub = times[best_seg]
+            else:
+                perp = coords[:, 1 if dx_total >= dy_total else 0]
+                t_sub = times
+        else:
+            perp = coords[:, 1 if dx_total >= dy_total else 0]
+            t_sub = times
+
+        t_sec = (t_sub - t_sub[0]) / 1000.0
+        if len(t_sec) < 4 or (t_sec[-1] - t_sec[0]) < 0.05:
+            return 0.45, 10.0, 0.70
+
+        # Linear detrend of macro horizontal drift
+        poly = np.poly1d(np.polyfit(t_sec, perp, 1))
+        residual = perp - poly(t_sec)
+        rms_jitter = float(np.sqrt(np.mean(residual ** 2)))
+
+        # Uniform interpolation for spectral density (Fs = 200 Hz)
+        fs = 200.0
+        n_samples = int(np.floor((t_sec[-1] - t_sec[0]) * fs))
+        if n_samples < 16:
+            return 0.45, 10.0, round(rms_jitter, 3)
+
+        t_uniform = np.linspace(t_sec[0], t_sec[-1], n_samples)
+        r_uniform = np.interp(t_uniform, t_sec, residual)
+
+        try:
+            from scipy.signal import welch
+            nperseg = min(len(r_uniform), 64)
+            freqs, psd = welch(r_uniform, fs=fs, nperseg=nperseg)
+
+            band_8_12 = (freqs >= 7.5) & (freqs <= 12.5)
+            band_total = (freqs >= 2.0) & (freqs <= 35.0)
+
+            p_tremor = float(np.sum(psd[band_8_12])) if np.any(band_8_12) else 0.0
+            p_total = float(np.sum(psd[band_total])) if np.any(band_total) else 1e-9
+            tremor_ratio = float(p_tremor / max(1e-9, p_total))
+
+            band_search = (freqs >= 6.0) & (freqs <= 15.0)
+            if np.any(band_search) and np.max(psd[band_search]) > 1e-9:
+                peak_freq = float(freqs[band_search][np.argmax(psd[band_search])])
+            else:
+                peak_freq = 10.0
+        except Exception:
+            tremor_ratio = 0.45
+            peak_freq = 10.0
+
+        return round(tremor_ratio, 3), round(peak_freq, 1), round(rms_jitter, 3)
+
+    @classmethod
+    def extract_motor_kinematics(cls, drags: List[DragGestureEvent]) -> Dict[str, float]:
+        """
+        Extracts psychomotor features from drag-and-drop & slider gestures:
         - Path Tortuosity: tau = L_actual / D_straight
         - Velocity bell-curve symmetry (accel_duration / decel_duration)
         - Acceleration variance (smoothness vs jerky synthetic line)
         - Target docking release latency (T_dock: dwell inside slot before release)
         - Mean Velocity & Directness ratio
+        - Saccadic notch deceleration dip ratio & pause duration
+        - Physiological grip tremor spectral ratio (8-12Hz) & peak frequency
+        - Lateral micro-jitter RMS amplitude
         """
         if not drags:
             return {
@@ -225,7 +390,12 @@ class BiometricsEngine:
                 "acceleration_variance": 1200.0,
                 "docking_latency": 110.0,
                 "mean_velocity": 450.0,
-                "drop_drift": 6.0
+                "drop_drift": 6.0,
+                "saccadic_dip_ratio": 0.45,
+                "saccadic_pause_ms": 75.0,
+                "tremor_8_12hz_ratio": 0.45,
+                "tremor_peak_freq": 10.0,
+                "tremor_rms_jitter": 0.75
             }
 
         tortuosities = []
@@ -234,6 +404,11 @@ class BiometricsEngine:
         docking_latencies = []
         velocities = []
         drifts = []
+        saccadic_dips = []
+        saccadic_pauses = []
+        tremor_ratios = []
+        tremor_peaks = []
+        tremor_rms_list = []
 
         for g in drags:
             traj = g.trajectory or []
@@ -262,7 +437,9 @@ class BiometricsEngine:
 
                 # Velocity profile
                 step_vels = step_dists / (dt / 1000.0)
-                mean_v = float(np.mean(step_vels))
+                # Macro velocity: total path length / elapsed duration (px/s)
+                total_dur_sec = max(0.01, (times[-1] - times[0]) / 1000.0)
+                mean_v = float(path_len / total_dur_sec)
                 velocities.append(mean_v)
 
                 # Bell-curve symmetry
@@ -285,11 +462,26 @@ class BiometricsEngine:
                     acc_var = float(np.var(accels))
                     accel_vars.append(acc_var)
 
+                # Ocular-motor saccadic pause & grip tremor
+                s_dip, s_pause, _ = cls.extract_saccadic_notch_pause(traj, g.track_notch_x, g.track_notch_y)
+                t_ratio, t_peak, t_rms = cls.extract_physiological_grip_tremor(traj, g.track_notch_x)
+
+                saccadic_dips.append(s_dip)
+                saccadic_pauses.append(s_pause)
+                tremor_ratios.append(t_ratio)
+                tremor_peaks.append(t_peak)
+                tremor_rms_list.append(t_rms)
+
             else:
                 tortuosities.append(g.tortuosity if g.tortuosity >= 1.0 else 1.25)
                 velocities.append(g.drag_velocity_mean if g.drag_velocity_mean > 0 else 450.0)
                 symmetries.append(1.0)
                 accel_vars.append(1200.0)
+                saccadic_dips.append(g.saccadic_dip_ratio or 0.45)
+                saccadic_pauses.append(g.saccadic_pause_ms or 75.0)
+                tremor_ratios.append(g.tremor_8_12hz_ratio or 0.45)
+                tremor_peaks.append(g.tremor_peak_freq or 10.0)
+                tremor_rms_list.append(g.tremor_rms_jitter or 0.75)
 
         return {
             "tortuosity": round(float(np.mean(tortuosities)) if tortuosities else 1.25, 3),
@@ -297,7 +489,12 @@ class BiometricsEngine:
             "acceleration_variance": round(float(np.mean(accel_vars)) if accel_vars else 1200.0, 1),
             "docking_latency": round(float(np.mean(docking_latencies)) if docking_latencies else 110.0, 1),
             "mean_velocity": round(float(np.mean(velocities)) if velocities else 450.0, 1),
-            "drop_drift": round(float(np.mean(drifts)) if drifts else 6.0, 1)
+            "drop_drift": round(float(np.mean(drifts)) if drifts else 6.0, 1),
+            "saccadic_dip_ratio": round(float(np.mean(saccadic_dips)) if saccadic_dips else 0.45, 3),
+            "saccadic_pause_ms": round(float(np.mean(saccadic_pauses)) if saccadic_pauses else 75.0, 1),
+            "tremor_8_12hz_ratio": round(float(np.mean(tremor_ratios)) if tremor_ratios else 0.45, 3),
+            "tremor_peak_freq": round(float(np.mean(tremor_peaks)) if tremor_peaks else 10.0, 1),
+            "tremor_rms_jitter": round(float(np.mean(tremor_rms_list)) if tremor_rms_list else 0.75, 3)
         }
 
     # -------------------------------------------------------------------------
@@ -389,6 +586,20 @@ class BiometricsEngine:
                     if lat_std < 0.15:
                         is_bot = True
                         reasons.append(f"Linear trajectory bot detected: cursor path has zero micro-jitter (lateral σ = {lat_std:.3f}px).")
+
+        # Zero physiological grip tremor check on slider drag gestures
+        if drag_gestures:
+            for d in drag_gestures:
+                if d.trajectory and len(d.trajectory) >= 12:
+                    coords = np.array([[m.x, m.y] for m in d.trajectory], dtype=float)
+                    disp = float(np.linalg.norm(coords[-1] - coords[0]))
+                    hold = max(0.0, d.hold_duration or (d.drop_time - d.start_time))
+                    if disp >= 80.0 and hold >= 180.0:
+                        t_ratio, t_peak, t_rms = BiometricsEngine.extract_physiological_grip_tremor(d.trajectory, d.track_notch_x)
+                        if t_rms < 0.05 and t_ratio < 0.05:
+                            is_bot = True
+                            reasons.append(f"Synthetic slider drag bot detected: zero physiological micro-tremor along track (RMS={t_rms:.3f}px, 8-12Hz power={t_ratio:.3f}).")
+                            break
 
         return is_bot, reasons
 
@@ -505,24 +716,47 @@ class BiometricsEngine:
         }
 
         # Build motor baseline with calibrated variance floors
+        s_dip = float(min(0.70, max(0.15, motor_feats["saccadic_dip_ratio"])))
+        s_pause = float(min(300.0, max(35.0, motor_feats["saccadic_pause_ms"])))
+        t_ratio = float(max(0.30, motor_feats["tremor_8_12hz_ratio"]))
+        raw_freq = float(motor_feats["tremor_peak_freq"])
+        t_peak = 10.0 if (raw_freq < 7.5 or raw_freq > 13.0) else raw_freq
+        mean_v = float(max(200.0, min(800.0, motor_feats["mean_velocity"])))
+        dock = float(max(40.0, motor_feats["docking_latency"]))
+
         motor_baseline = {
             "tortuosity_mean": motor_feats["tortuosity"],
             "tortuosity_std": max(0.25, motor_feats["tortuosity"] * 0.30),
 
             "velocity_symmetry_mean": motor_feats["velocity_symmetry"],
-            "velocity_symmetry_std": max(0.35, motor_feats["velocity_symmetry"] * 0.35),
+            "velocity_symmetry_std": max(0.40, motor_feats["velocity_symmetry"] * 0.35),
 
             "acceleration_variance_mean": motor_feats["acceleration_variance"],
             "acceleration_variance_std": max(600.0, motor_feats["acceleration_variance"] * 0.40),
 
-            "docking_latency_mean": motor_feats["docking_latency"],
-            "docking_latency_std": max(55.0, motor_feats["docking_latency"] * 0.35),
+            "docking_latency_mean": dock,
+            "docking_latency_std": max(65.0, dock * 0.35),
 
-            "mean_velocity_mean": motor_feats["mean_velocity"],
-            "mean_velocity_std": max(250.0, motor_feats["mean_velocity"] * 0.40),
+            "mean_velocity_mean": mean_v,
+            "mean_velocity_std": max(180.0, mean_v * 0.40),
 
             "drop_drift_mean": motor_feats["drop_drift"],
-            "drop_drift_std": max(12.0, motor_feats["drop_drift"] * 0.40),
+            "drop_drift_std": max(15.0, motor_feats["drop_drift"] * 0.40),
+
+            "saccadic_dip_ratio_mean": s_dip,
+            "saccadic_dip_ratio_std": max(0.20, s_dip * 0.40),
+
+            "saccadic_pause_ms_mean": s_pause,
+            "saccadic_pause_ms_std": max(60.0, s_pause * 0.40),
+
+            "tremor_8_12hz_ratio_mean": t_ratio,
+            "tremor_8_12hz_ratio_std": max(0.18, t_ratio * 0.35),
+
+            "tremor_peak_freq_mean": t_peak,
+            "tremor_peak_freq_std": max(2.5, t_peak * 0.25),
+
+            "tremor_rms_jitter_mean": motor_feats["tremor_rms_jitter"],
+            "tremor_rms_jitter_std": max(0.30, motor_feats["tremor_rms_jitter"] * 0.35),
 
             "shapes_slotted": len(shape_drags)
         }
@@ -598,7 +832,7 @@ class BiometricsEngine:
             )
 
         # Extract baselines
-        typing_base = baseline_profile.get("typing_baseline") or {}
+        typing_base = baseline_profile.get("typing_baseline") or baseline_profile.get("keystroke_baseline") or {}
         motor_base = baseline_profile.get("motor_baseline") or {}
 
         # 3. Keystroke Dynamics & Cadence Evaluation (Z-Score Engine)
@@ -697,33 +931,55 @@ class BiometricsEngine:
             motor_z_scores = [3.5, 3.5, 3.5]
         else:
             motor_obs = cls.extract_motor_kinematics([token_drag] if token_drag else [])
+
+            # Dynamic sanitization of baseline parameters to physiological envelopes
+            base_pause_mean = min(300.0, max(40.0, float(motor_base.get("saccadic_pause_ms_mean", 75.0))))
+            base_pause_std = max(60.0, float(motor_base.get("saccadic_pause_ms_std", 60.0)))
+
+            base_dip_mean = min(0.70, max(0.15, float(motor_base.get("saccadic_dip_ratio_mean", 0.45))))
+            base_dip_std = max(0.20, float(motor_base.get("saccadic_dip_ratio_std", 0.20)))
+
+            base_tremor_mean = max(0.30, float(motor_base.get("tremor_8_12hz_ratio_mean", 0.45)))
+            base_tremor_std = max(0.18, float(motor_base.get("tremor_8_12hz_ratio_std", 0.18)))
+
+            raw_freq = float(motor_base.get("tremor_peak_freq_mean", 10.0))
+            base_freq_mean = 10.0 if (raw_freq < 7.5 or raw_freq > 13.0) else raw_freq
+            base_freq_std = max(2.5, float(motor_base.get("tremor_peak_freq_std", 2.5)))
+
+            base_vel_mean = max(200.0, min(800.0, float(motor_base.get("mean_velocity_mean", 450.0))))
+            base_vel_std = max(180.0, float(motor_base.get("mean_velocity_std", 180.0)))
+
+            base_dock_mean = float(motor_base.get("docking_latency_mean", 120.0))
+            base_dock_std = max(65.0, float(motor_base.get("docking_latency_std", 65.0)))
+
             motor_feature_mapping = [
-                ("tortuosity", "Trajectory path tortuosity", 0.25, "failed curve baseline"),
-                ("velocity_symmetry", "Velocity bell-curve acceleration symmetry", 0.35, "unnatural motor thrust profile"),
-                ("docking_latency", "Target docking release dwell latency", 55.0, "docking deceleration mismatch"),
-                ("mean_velocity", "Token drag velocity", 250.0, "ballistic sweep velocity mismatch"),
-                ("drop_drift", "Drop docking accuracy radial drift", 12.0, "precision target placement drift")
+                ("tortuosity", "Trajectory path tortuosity", float(motor_base.get("tortuosity_mean", 1.15)), max(0.25, float(motor_base.get("tortuosity_std", 0.25))), "failed curve baseline"),
+                ("velocity_symmetry", "Velocity bell-curve acceleration symmetry", float(motor_base.get("velocity_symmetry_mean", 1.0)), max(0.40, float(motor_base.get("velocity_symmetry_std", 0.40))), "unnatural motor thrust profile"),
+                ("docking_latency", "Target docking release dwell latency", base_dock_mean, base_dock_std, "docking deceleration mismatch"),
+                ("mean_velocity", "Token drag velocity", base_vel_mean, base_vel_std, "ballistic sweep velocity mismatch"),
+                ("drop_drift", "Drop docking accuracy radial drift", float(motor_base.get("drop_drift_mean", 6.0)), max(15.0, float(motor_base.get("drop_drift_std", 15.0))), "precision target placement drift"),
+                ("saccadic_dip_ratio", "Saccadic notch deceleration dip ratio", base_dip_mean, base_dip_std, "ocular-motor notch alignment pause mismatch"),
+                ("saccadic_pause_ms", "Notch saccadic alignment pause duration", base_pause_mean, base_pause_std, "notch deceleration dwell mismatch"),
+                ("tremor_8_12hz_ratio", "Physiological grip tremor spectral ratio (8-12Hz)", base_tremor_mean, base_tremor_std, "involuntary neuromuscular tremor power mismatch"),
+                ("tremor_peak_freq", "Grip tremor peak frequency", base_freq_mean, base_freq_std, "involuntary tremor frequency mismatch"),
+                ("tremor_rms_jitter", "Lateral micro-jitter RMS amplitude", float(motor_base.get("tremor_rms_jitter_mean", 0.75)), max(0.30, float(motor_base.get("tremor_rms_jitter_std", 0.30))), "grip pressure jitter anomaly")
             ]
 
-            for feat_key, label, min_sigma, diag_tag in motor_feature_mapping:
-                if f"{feat_key}_mean" in motor_base:
-                    mu = float(motor_base[f"{feat_key}_mean"])
-                    sigma = float(max(min_sigma, motor_base.get(f"{feat_key}_std", min_sigma)))
-                    obs = float(motor_obs.get(feat_key, mu))
+            for feat_key, label, mu, sigma, diag_tag in motor_feature_mapping:
+                obs = float(motor_obs.get(feat_key, mu))
+                z = abs(obs - mu) / sigma
+                z_capped = min(Z_SCORE_CAP, z)
+                motor_z_scores.append(z_capped)
+                motor_details[feat_key] = {"observed": obs, "baseline_mean": mu, "z_score": round(z, 2)}
 
-                    z = abs(obs - mu) / sigma
-                    z_capped = min(Z_SCORE_CAP, z)
-                    motor_z_scores.append(z_capped)
-                    motor_details[feat_key] = {"observed": obs, "baseline_mean": mu, "z_score": round(z, 2)}
-
-                    if z > Z_SCORE_ANOMALY_THRESHOLD:
-                        sign = "+" if obs > mu else "-"
-                        reasons.append(
-                            f"{label} was {obs:.1f} vs baseline {mu:.1f} ({sign}{z:.1f}σ deviation - {diag_tag})"
-                        )
+                if z > Z_SCORE_ANOMALY_THRESHOLD:
+                    sign = "+" if obs > mu else "-"
+                    reasons.append(
+                        f"{label} was {obs:.1f} vs baseline {mu:.1f} ({sign}{z:.1f}σ deviation - {diag_tag})"
+                    )
 
             mean_motor_z = float(np.mean(motor_z_scores)) if motor_z_scores else 0.5
-            motor_score = float(max(0.0, min(100.0, 100.0 * math.exp(-mean_motor_z / 3.6))))
+            motor_score = float(max(0.0, min(100.0, 100.0 * math.exp(-mean_motor_z / 3))))
 
         # 5. Composite Fusion & Verdict Logic
         all_z = typing_z_scores + motor_z_scores

@@ -3,42 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BioPrint V2 | Hybrid Behavioral Biometric Engine</title>
-  <meta name="description" content="Sub-50ms continuous behavioral biometric authentication engine pairing Argon2id salted hashing with universal typing dynamics and psychomotor kinematics.">
-  
-  <!-- Typography from Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>BioPrint V2 | Authentication Gateway</title>
+  <meta name="description" content="Sub-50ms continuous behavioral biometric authentication gateway pairing salted credentials with universal typing dynamics and psychomotor kinematics.">
   
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="dark-theme">
-  <!-- Background Ambient Glow Canvas -->
-  <div class="ambient-glow glow-cyan"></div>
-  <div class="ambient-glow glow-blue"></div>
-
-  <!-- SVG Linear Gradients Definition -->
-  <svg style="position: absolute; width: 0; height: 0; overflow: hidden;" aria-hidden="true">
-    <defs>
-      <linearGradient id="grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.9"/>
-        <stop offset="100%" stop-color="#0080FF" stop-opacity="0.6"/>
-      </linearGradient>
-      <linearGradient id="grad-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#10B981" stop-opacity="0.9"/>
-        <stop offset="100%" stop-color="#059669" stop-opacity="0.6"/>
-      </linearGradient>
-      <linearGradient id="grad-amber" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.9"/>
-        <stop offset="100%" stop-color="#D97706" stop-opacity="0.6"/>
-      </linearGradient>
-    </defs>
-  </svg>
-
+<body>
   <!-- Top Navigation Header -->
   <header class="app-header">
-    <div class="brand-container">
+    <a href="index.html" class="brand-container">
       <div class="brand-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 2a10 10 0 0 0-10 10c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
@@ -46,435 +19,175 @@
       </div>
       <div class="brand-text">
         <span class="brand-title">BIOPRINT <span class="badge-v2">V2</span></span>
-        <span class="brand-subtitle">Hybrid Behavioral Biometrics Engine</span>
+        <span class="brand-subtitle">Behavioral Biometrics Gateway</span>
       </div>
-    </div>
+    </a>
 
-    <!-- Mode Navigation Tabs -->
-    <nav class="view-tabs" id="view-tabs">
-      <button class="nav-tab active" id="tab-enroll" data-view="enroll-view">
-        <span class="tab-icon">⚡</span>
-        <span>1. Registration & Calibration</span>
-      </button>
-      <button class="nav-tab" id="tab-verify" data-view="verify-view">
-        <span class="tab-icon">🛡️</span>
-        <span>2. Authentication Terminal</span>
-      </button>
-    </nav>
-
-    <!-- Backend & Engine Status Pill -->
-    <div class="engine-status-container">
+    <div class="header-right">
       <div class="engine-status-pill" id="engine-status-pill">
         <span class="status-indicator"></span>
-        <span id="engine-status-label">Engine: Checking...</span>
+        <span id="engine-status-label">Daemon: Checking...</span>
       </div>
+      <a href="signup.html" class="header-nav-link">Create Account / Sign Up →</a>
     </div>
   </header>
 
-  <!-- Main Viewport -->
-  <main class="main-viewport">
-
-    <!-- =====================================================================
-         VIEW 1: REGISTRATION & CALIBRATION SUITE
-         ===================================================================== -->
-    <section class="view-panel active-panel" id="enroll-view">
-      <div class="panel-header">
-        <div class="panel-title-group">
-          <div class="badge-tag">Zero-Knowledge Enrollment</div>
-          <h1 class="panel-heading">Account Setup & Behavioral Profile Calibration</h1>
-          <p class="panel-desc">
-            Establish your cryptographic identity with Argon2id salted hashing and calibrate your universal typing and psychomotor kinematic baseline.
-          </p>
-        </div>
-        <div class="enroll-progress-bar-wrap">
-          <div class="enroll-steps-dots">
-            <div class="step-dot active" id="dot-creds"><span class="dot-num">1</span> Account</div>
-            <div class="step-line" id="line-1"></div>
-            <div class="step-dot" id="dot-shapes"><span class="dot-num">2</span> Scrambled Shapes</div>
-            <div class="step-line" id="line-2"></div>
-            <div class="step-dot" id="dot-typing"><span class="dot-num">3</span> Monkeytype</div>
-          </div>
-        </div>
+  <!-- Centered Login Gateway -->
+  <main class="gateway-container">
+    <div class="card login-card">
+      <div class="card-header">
+        <span class="card-tag">SECURE ACCESS</span>
+        <h1 class="card-title">Authentication Gateway</h1>
+        <p class="card-subtitle">
+          Verify your credentials with real-time keystroke dynamics and psychomotor saccade tracking in &lt;50ms.
+        </p>
       </div>
 
-      <!-- Step 1: Account Credentials Setup -->
-      <div class="calibration-card" id="card-creds">
-        <div class="card-header">
-          <div class="card-title">
-            <span class="card-step-badge">STEP 1/3</span>
-            <h2>Account Credentials & Argon2id Salted Security</h2>
-          </div>
-          <p class="card-instructions">
-            Enter your desired username and secure password with double confirmation. Passwords are never stored in plaintext and are salted using Argon2id.
-          </p>
+      <form id="login-form" autocomplete="off" onsubmit="return false;">
+        <!-- Username Field: Default Blank -->
+        <div class="form-group">
+          <label for="login-username">Username Identifier</label>
+          <input type="text" id="login-username" class="input-text" placeholder="Enter enrolled username..." value="" autocomplete="off" required>
         </div>
 
-        <div class="account-form-grid">
-          <div class="form-group">
-            <label for="reg-username">Username Identifier</label>
-            <input type="text" id="reg-username" class="cyber-input" placeholder="e.g. alice, jdoe" value="alice" autocomplete="off" required>
+        <!-- Master Password Field -->
+        <div class="form-group">
+          <label for="login-password">Master Password</label>
+          <input type="password" id="login-password" class="input-text" placeholder="Enter your password..." autocomplete="off" required>
+        </div>
+
+        <!-- Verification Natural Identity Pangram Field -->
+        <div class="form-group">
+          <div class="form-label-row">
+            <label for="login-pangram-input">Verification Identity Pangram</label>
+            <span class="pangram-match-tag" id="pangram-status-tag">Status: Pending</span>
+          </div>
+          <div class="pangram-prompt-box">
+            <span class="prompt-text">"Quick foxes jump over lazy brown dogs"</span>
+          </div>
+          <input type="text" id="login-pangram-input" class="input-text" placeholder="Type the pangram above..." autocomplete="off" spellcheck="false" required>
+        </div>
+
+        <!-- Dynamic Saccade & Track Verification Slider (Full Width Matching Sign Up) -->
+        <div class="saccade-slider-container" id="login-drag-arena">
+          <div class="slider-hud">
+            <div class="hud-item">Dynamic Saccade & Track Slider</div>
+            <div class="hud-item">Velocity: <span id="login-hud-vel" class="hud-val">0 px/s</span></div>
+            <div class="hud-item">Saccadic Pause: <span id="login-hud-notch" class="hud-val">--</span></div>
+            <div class="hud-item">Tremor (8-12Hz): <span id="login-hud-tremor" class="hud-val">Ready</span></div>
           </div>
 
-          <div class="form-group">
-            <label for="reg-password">Master Password</label>
-            <input type="password" id="reg-password" class="cyber-input" placeholder="Enter secure password (min 6 chars)..." autocomplete="off" required>
-            <div class="password-strength-bar">
-              <div class="strength-fill" id="strength-fill"></div>
+          <div class="saccade-track-arena" id="login-drag-track">
+            <!-- Trajectory Canvas Overlay -->
+            <canvas id="login-drag-canvas" class="drag-canvas-overlay"></canvas>
+
+            <!-- Guided SVG Track Rail with Detour Notch (Matching Signup Scale with Spacious Clearance) -->
+            <div class="slider-rail-guide">
+              <svg id="login-track-svg" viewBox="0 0 520 130" preserveAspectRatio="none">
+                <path id="login-track-path" d="M 40 65 L 190 65 Q 230 65 245 28 Q 260 14 275 28 Q 290 65 330 65 L 480 65" fill="none" stroke="#334466" stroke-width="3" stroke-dasharray="6 4"/>
+                <circle id="login-notch-beacon" cx="260" cy="14" r="6" fill="#3b82f6"/>
+                <text id="login-notch-label" x="260" y="38" fill="#3b82f6" font-size="10" font-family="'Open Sans', sans-serif" font-weight="600" text-anchor="middle">ALIGN NOTCH ▲</text>
+              </svg>
+            </div>
+
+            <!-- Draggable Token Handle -->
+            <div class="slider-handle" id="login-token" data-shape="token" touch-action="none">
+              <span class="slider-handle-glyph">🔒</span>
+              <span class="slider-handle-label">SLIDE</span>
+            </div>
+
+            <!-- Target Dock Hole -->
+            <div class="slider-dock-target" id="login-target-hole" data-accept="token">
+              <span class="dock-glyph">🔓</span>
+              <span class="dock-label">UNLOCK</span>
             </div>
           </div>
 
-          <div class="form-group">
-            <div class="form-label-row">
-              <label for="reg-confirm-password">Confirm Password</label>
-              <span class="match-indicator" id="password-match-tag">Matching: Pending</span>
-            </div>
-            <input type="password" id="reg-confirm-password" class="cyber-input" placeholder="Re-enter password to confirm..." autocomplete="off" required>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+            <span style="font-size: 11px; color: var(--text-secondary);">Drag slider along the track through the detour notch to submit</span>
+            <button type="button" class="btn-text-only" id="btn-reposition-offset">Shift Detour Geometry ⇅</button>
           </div>
         </div>
 
-        <div class="card-footer-action">
-          <button class="btn btn-primary" id="btn-creds-next">
-            <span>Proceed to Scrambled Motor Calibration</span>
-            <span class="btn-arrow">→</span>
-          </button>
+        <button type="button" class="btn btn-primary btn-block" id="btn-login-submit" style="margin-top: 8px;">
+          Authenticate Identity →
+        </button>
+
+        <div class="form-footer-nav">
+          Don't have an enrolled profile? <a href="signup.html">Create an Account & Calibrate</a>
         </div>
+      </form>
+    </div>
+
+    <!-- Security Benchmark & Impostor Attack Simulator -->
+    <div class="benchmark-card">
+      <div class="card-header" style="margin-bottom: 12px;">
+        <span class="card-tag" style="color: var(--warning);">DIAGNOSTIC BENCHMARK</span>
+        <h2 class="card-title" style="font-size: 16px;">Security & Impostor Simulator</h2>
+        <p class="card-subtitle">
+          Test credential theft, cadence mismatches, and bot automation against the &ge; 70.0% verification threshold:
+        </p>
       </div>
 
-      <!-- Step 2: Scrambled Shape-Matching Motor Calibration -->
-      <div class="calibration-card hidden-card" id="card-shapes">
-        <div class="card-header">
-          <div class="card-title">
-            <span class="card-step-badge">STEP 2/3</span>
-            <h2>Scrambled Shape-Matching (Psychomotor Kinematics)</h2>
+      <div class="benchmark-grid">
+        <button class="attack-btn" id="sim-legit">
+          <div class="attack-icon">🟢</div>
+          <div class="attack-meta">
+            <strong>Legitimate User Auth</strong>
+            <span>Matching password + touch-typing cadence & saccade pause</span>
           </div>
-          <p class="card-instructions">
-            Drag each shape on the top row into its matching outline slot along the bottom row. Notice that target slots are <strong>scrambled in non-aligned positions</strong> to capture non-linear trajectory tortuosity (&tau;), velocity curves, and docking latency (T<sub>dock</sub>).
-          </p>
-        </div>
+        </button>
 
-        <div class="motor-stage-container drag-game-container">
-          <!-- Real-Time Motor Telemetry HUD -->
-          <div class="motor-telemetry-hud">
-            <div class="hud-item">Slotted: <span id="drag-slotted-count" class="hud-val">0 / 3</span></div>
-            <div class="hud-item">Velocity: <span id="drag-vel-live" class="hud-val">0 px/s</span></div>
-            <div class="hud-item">Tortuosity (&tau;): <span id="drag-tort-live" class="hud-val">1.00</span></div>
-            <div class="hud-item">Docking Latency: <span id="drag-dock-live" class="hud-val">0 ms</span></div>
+        <button class="attack-btn" id="sim-cadence-impostor">
+          <div class="attack-icon">⚠️</div>
+          <div class="attack-meta">
+            <strong>Leaked Password + Cadence Impostor</strong>
+            <span>Correct password, but hunt-and-peck typing (R_hand &gt; 1.25)</span>
           </div>
+        </button>
 
-          <!-- Drag and Drop Interactive Arena -->
-          <div class="drag-arena" id="enroll-drag-arena">
-            <!-- Trajectory Overlay Canvas -->
-            <canvas id="drag-trajectory-canvas" class="drag-canvas-overlay"></canvas>
-
-            <!-- Top Row: Source Draggable Shapes -->
-            <div class="shapes-dock" id="enroll-shapes-dock">
-              <div class="dock-label">SOURCE SHAPES (TOP ROW)</div>
-              <div class="shapes-row">
-                <!-- 1. Circle -->
-                <div class="draggable-shape shape-circle" id="shape-circle" data-shape="circle" data-target="slot-circle" touch-action="none">
-                  <svg viewBox="0 0 50 50" class="shape-svg">
-                    <circle cx="25" cy="25" r="21" fill="url(#grad-cyan)" stroke="#00F0FF" stroke-width="2"/>
-                  </svg>
-                  <span class="shape-text">Circle</span>
-                </div>
-
-                <!-- 2. Triangle -->
-                <div class="draggable-shape shape-triangle" id="shape-triangle" data-shape="triangle" data-target="slot-triangle" touch-action="none">
-                  <svg viewBox="0 0 50 50" class="shape-svg">
-                    <polygon points="25,5 45,43 5,43" fill="url(#grad-amber)" stroke="#F59E0B" stroke-width="2"/>
-                  </svg>
-                  <span class="shape-text">Triangle</span>
-                </div>
-
-                <!-- 3. Square -->
-                <div class="draggable-shape shape-square" id="shape-square" data-shape="square" data-target="slot-square" touch-action="none">
-                  <svg viewBox="0 0 50 50" class="shape-svg">
-                    <rect x="6" y="6" width="38" height="38" rx="6" fill="url(#grad-emerald)" stroke="#10B981" stroke-width="2"/>
-                  </svg>
-                  <span class="shape-text">Square</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Bottom Row: Scrambled Non-Aligned Target Slots -->
-            <div class="holes-dock" id="enroll-holes-dock">
-              <div class="dock-label">SCRAMBLED NON-ALIGNED TARGET HOLES (BOTTOM ROW)</div>
-              <div class="holes-row">
-                <!-- Slot 1 (Positioned under Circle, but accepts SQUARE!) -->
-                <div class="target-slot slot-square" id="slot-square" data-accept="square">
-                  <div class="slot-outline">
-                    <svg viewBox="0 0 60 60" class="slot-svg">
-                      <rect x="8" y="8" width="44" height="44" rx="8" fill="none" stroke="rgba(16, 185, 129, 0.45)" stroke-width="2" stroke-dasharray="4 3"/>
-                    </svg>
-                  </div>
-                  <span class="slot-label">Square Slot</span>
-                </div>
-
-                <!-- Slot 2 (Positioned under Triangle, but accepts CIRCLE!) -->
-                <div class="target-slot slot-circle" id="slot-circle" data-accept="circle">
-                  <div class="slot-outline">
-                    <svg viewBox="0 0 60 60" class="slot-svg">
-                      <circle cx="30" cy="30" r="23" fill="none" stroke="rgba(0, 240, 255, 0.45)" stroke-width="2" stroke-dasharray="4 3"/>
-                    </svg>
-                  </div>
-                  <span class="slot-label">Circle Slot</span>
-                </div>
-
-                <!-- Slot 3 (Positioned under Square, but accepts TRIANGLE!) -->
-                <div class="target-slot slot-triangle" id="slot-triangle" data-accept="triangle">
-                  <div class="slot-outline">
-                    <svg viewBox="0 0 60 60" class="slot-svg">
-                      <polygon points="30,6 54,49 6,49" fill="none" stroke="rgba(245, 158, 11, 0.45)" stroke-width="2" stroke-dasharray="4 3"/>
-                    </svg>
-                  </div>
-                  <span class="slot-label">Triangle Slot</span>
-                </div>
-              </div>
-            </div>
+        <button class="attack-btn" id="sim-bad-password">
+          <div class="attack-icon">🔑</div>
+          <div class="attack-meta">
+            <strong>Invalid Password Credential</strong>
+            <span>Incorrect password credential rejected immediately</span>
           </div>
-        </div>
+        </button>
+
+        <button class="attack-btn" id="sim-linear-bot">
+          <div class="attack-icon">🤖</div>
+          <div class="attack-meta">
+            <strong>Linear Zero-Jitter Cursor Bot</strong>
+            <span>Collinear synthetic path without natural motor tremor</span>
+          </div>
+        </button>
+
+        <button class="attack-btn" id="sim-teleport-bot">
+          <div class="attack-icon">⚡</div>
+          <div class="attack-meta">
+            <strong>Instant Drag Teleportation</strong>
+            <span>Zero intermediate pointer events (&lt;15ms hold duration)</span>
+          </div>
+        </button>
+
+        <button class="attack-btn" id="sim-untrusted">
+          <div class="attack-icon">🛑</div>
+          <div class="attack-meta">
+            <strong>Untrusted Script Injection</strong>
+            <span>Synthetic dispatchEvent (event.isTrusted === false)</span>
+          </div>
+        </button>
       </div>
-
-      <!-- Step 3: Monkeytype-Style Typing Calibration -->
-      <div class="calibration-card hidden-card" id="card-typing">
-        <div class="card-header">
-          <div class="card-title">
-            <span class="card-step-badge">STEP 3/3</span>
-            <h2>Monkeytype-Style Typing Calibration (Universal Keystroke Dynamics)</h2>
-          </div>
-          <p class="card-instructions">
-            Type naturally for 15 seconds. You can use Backspace to return to previous words. BioPrint measures your universal psychomotor profile: QWERTY cross-hand vs same-hand ratio (R<sub>hand</sub>), key cluster dwell matrix, spacebar boundary delay, and error dynamics.
-          </p>
-        </div>
-
-        <div class="monkeytype-container">
-          <!-- Live Typing HUD -->
-          <div class="monkeytype-hud">
-            <div class="m-hud-stat timer-stat">
-              <span class="m-stat-label">TIME LEFT</span>
-              <span class="m-stat-val" id="live-timer" style="color: #F59E0B;">15s</span>
-            </div>
-            <div class="m-hud-stat">
-              <span class="m-stat-label">WPM</span>
-              <span class="m-stat-val" id="live-wpm">0</span>
-            </div>
-            <div class="m-hud-stat">
-              <span class="m-stat-label">ACCURACY</span>
-              <span class="m-stat-val" id="live-accuracy">100%</span>
-            </div>
-            <div class="m-hud-stat">
-              <span class="m-stat-label">BACKSPACES</span>
-              <span class="m-stat-val" id="live-backspaces">0</span>
-            </div>
-            <div class="m-hud-stat">
-              <span class="m-stat-label">WORDS</span>
-              <span class="m-stat-val" id="live-word-progress">0 / 15</span>
-            </div>
-          </div>
-
-          <!-- Interactive Word Streaming Arena -->
-          <div class="monkeytype-word-arena" id="monkeytype-arena" tabindex="0">
-            <div class="monkeytype-caret" id="monkeytype-caret"></div>
-            <div class="monkeytype-words-wrap" id="monkeytype-words-wrap">
-              <!-- Dynamically rendered word tokens with letter spans -->
-            </div>
-            <input type="text" id="monkeytype-hidden-input" class="hidden-typing-input" autocomplete="off" spellcheck="false" autofocus>
-          </div>
-
-          <div class="enroll-action-bar">
-            <button class="btn btn-secondary" id="btn-restart-typing">↺ Reset Typing Test</button>
-            <button class="btn btn-primary" id="btn-submit-register" disabled>
-              <span>Compile & Register Profile</span>
-              <span class="btn-arrow">→</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Registration Complete Summary Card -->
-      <div class="calibration-card hidden-card" id="card-complete">
-        <div class="enrollment-success-card">
-          <div class="success-icon-badge">✓</div>
-          <h2>Argon2id Account & Behavioral Profile Locked</h2>
-          <p id="enroll-summary-text">Baseline distributions compiled with physiological variance floors across universal typing and motor kinematics.</p>
-          
-          <div class="baseline-metrics-grid" id="baseline-metrics-grid">
-            <!-- Populated via JS -->
-          </div>
-
-          <button class="btn btn-primary btn-large" id="btn-proceed-login">
-            Proceed to Authentication Terminal →
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- =====================================================================
-         VIEW 2: LOGIN & VERIFICATION DASHBOARD
-         ===================================================================== -->
-    <section class="view-panel" id="verify-view">
-      <div class="panel-header">
-        <div class="panel-title-group">
-          <div class="badge-tag tag-emerald">Live Telemetry Sentinel</div>
-          <h1 class="panel-heading">BioPrint Authentication Terminal</h1>
-          <p class="panel-desc">
-            Multi-factor verification: your Argon2id password hash is validated first, followed by continuous universal typing and psychomotor kinematics verification in &lt;50ms.
-          </p>
-        </div>
-
-        <div class="active-profile-card" id="active-profile-pill">
-          <div class="profile-avatar">👤</div>
-          <div class="profile-info">
-            <div class="profile-id" id="active-user-display">User: alice (Enrolled)</div>
-            <div class="profile-status" id="active-profile-status">Argon2id Salted: Active</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="login-dashboard-grid">
-        <!-- Left Column: Login Form & Target -->
-        <div class="cyber-card login-form-card">
-          <div class="card-tag">AUTHENTICATION GATEWAY</div>
-          <h2 class="card-subtitle">Zero-Friction Behavioral Verification</h2>
-          
-          <form id="login-form" class="bioprint-guard" onsubmit="return false;">
-            <div class="form-group">
-              <label for="login-username">Username Identifier</label>
-              <input type="text" id="login-username" class="cyber-input" value="alice" autocomplete="off" required>
-            </div>
-
-            <div class="form-group">
-              <label for="login-password">Master Password</label>
-              <input type="password" id="login-password" class="cyber-input" placeholder="Enter your enrolled password..." autocomplete="off" required>
-            </div>
-
-            <!-- Verification Natural Identity Pangram Field -->
-            <div class="form-group">
-              <div class="form-label-row">
-                <label for="login-pangram-input">Verification Identity Pangram</label>
-                <span class="pangram-match-tag" id="pangram-status-tag">Status: Pending</span>
-              </div>
-              <div class="pangram-prompt-box">
-                <span class="prompt-text">"Quick foxes jump over lazy brown dogs"</span>
-              </div>
-              <input type="text" id="login-pangram-input" class="cyber-input" placeholder="Type the pangram above..." autocomplete="off" spellcheck="false" required>
-            </div>
-
-            <!-- Dynamic 2D Offset Drag-to-Unlock / Submit Arena -->
-            <div class="login-drag-submission-area" id="login-drag-arena">
-              <div class="drag-arena-header">
-                <span class="arena-title">PSYCHOMOTOR DOCKING GESTURE</span>
-                <span class="arena-hint">Drop Token into 2D Offset Dock to Submit</span>
-              </div>
-
-              <!-- Trajectory Canvas Overlay for Login Drag -->
-              <canvas id="login-drag-canvas" class="login-drag-overlay"></canvas>
-
-              <div class="login-drag-track" id="login-drag-track">
-                <!-- Draggable Token (Source) -->
-                <div class="draggable-token-container" id="token-container">
-                  <div class="draggable-shape token-shape" id="login-token" data-shape="token" touch-action="none">
-                    <div class="token-core">
-                      <span class="token-glyph">🛡️</span>
-                      <span class="token-label">DRAG ME</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Guidance Rail Graphics -->
-                <div class="drag-rail-guide">
-                  <div class="guide-dots"></div>
-                  <span class="guide-arrow">➔ ➔ ➔</span>
-                </div>
-
-                <!-- Target Outline Hole (Dynamic 2D Offset) -->
-                <div class="login-target-hole" id="login-target-hole" data-accept="token">
-                  <div class="hole-core">
-                    <span class="hole-glyph">🔓</span>
-                    <span class="hole-label">DROP HOLE</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="target-controls-row">
-              <button class="btn-text-only" id="btn-reposition-offset">🎲 Randomize Target Dock Offset (X&plusmn;80px, Y&plusmn;50px)</button>
-            </div>
-          </form>
-        </div>
-
-        <!-- Right Column: Security Benchmark & Impostor Attack Simulator -->
-        <div class="cyber-card attack-simulation-card">
-          <div class="card-tag tag-crimson">SECURITY BENCHMARK SUITE</div>
-          <h2 class="card-subtitle">Attack Vector & Impostor Simulator</h2>
-          <p class="playground-intro">
-            Simulate credential leakage, hunt-and-peck typists, and synthetic bot automation to benchmark the diagnostic explainability engine:
-          </p>
-
-          <div class="attack-buttons-grid">
-            <button class="attack-btn" id="sim-legit">
-              <div class="attack-icon">🟢</div>
-              <div class="attack-meta">
-                <strong>Legitimate User Auth</strong>
-                <span>Valid password + matching touch-typing cadence & motor stroke</span>
-              </div>
-            </button>
-
-            <button class="attack-btn" id="sim-cadence-impostor">
-              <div class="attack-icon">⚠️</div>
-              <div class="attack-meta">
-                <strong>Leaked Password + Cadence Impostor</strong>
-                <span>Correct password, but hunt-and-peck typing (R_hand &gt; 1.25)</span>
-              </div>
-            </button>
-
-            <button class="attack-btn" id="sim-bad-password">
-              <div class="attack-icon">🔑</div>
-              <div class="attack-meta">
-                <strong>Invalid Password Hash</strong>
-                <span>Wrong password credential rejected by Argon2id immediately</span>
-              </div>
-            </button>
-
-            <button class="attack-btn" id="sim-linear-bot">
-              <div class="attack-icon">🤖</div>
-              <div class="attack-meta">
-                <strong>Linear Zero-Jitter Cursor Bot</strong>
-                <span>Collinear synthetic cursor path with zero lateral variance</span>
-              </div>
-            </button>
-
-            <button class="attack-btn" id="sim-teleport-bot">
-              <div class="attack-icon">⚡</div>
-              <div class="attack-meta">
-                <strong>Instant Drag Teleportation</strong>
-                <span>Zero intermediate pointer events (&lt;15ms hold duration)</span>
-              </div>
-            </button>
-
-            <button class="attack-btn" id="sim-untrusted">
-              <div class="attack-icon">🛑</div>
-              <div class="attack-meta">
-                <strong>Untrusted Script Injection</strong>
-                <span>Synthetic dispatchEvent (event.isTrusted === false)</span>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
+    </div>
   </main>
 
-  <!-- =====================================================================
-       REAL-TIME VERIFICATION FEEDBACK MODAL
-       ===================================================================== -->
+  <!-- Real-Time Verification Feedback Modal -->
   <div class="modal-backdrop" id="verification-modal" style="display: none;">
     <div class="modal-dialog">
-      <!-- Modal Header with Dynamic Verdict Banner -->
+      <!-- Verdict Banner -->
       <div class="modal-verdict-banner" id="modal-verdict-banner">
         <div class="verdict-status-icon" id="verdict-icon">🛡️</div>
-        <div class="verdict-text-group">
+        <div>
           <div class="verdict-title" id="verdict-title">ACCESS GRANTED</div>
           <div class="verdict-subtitle" id="verdict-subtitle">Behavioral signature matches enrolled baseline</div>
         </div>
@@ -486,54 +199,51 @@
 
       <!-- Modal Body -->
       <div class="modal-body-content">
-        <!-- Score and Radar Section -->
-        <div class="modal-viz-section">
-          <div class="confidence-gauge-box">
-            <div class="gauge-label">Composite Anomaly Confidence</div>
-            <div class="gauge-value-large" id="modal-confidence-score">88.5%</div>
-            <div class="gauge-threshold-info">Threshold: &ge; 70.0% to Authenticate</div>
+        <div class="confidence-gauge-box">
+          <div class="gauge-label">Composite Biometric Match</div>
+          <div class="gauge-value-large" id="modal-confidence-score">88.5%</div>
+          <div class="gauge-threshold-info">Threshold: &ge; 70.0% to Authenticate</div>
+        </div>
+
+        <!-- Multi-Factor Signal Meters -->
+        <div class="signals-meter-container">
+          <div class="meter-item">
+            <div class="meter-labels">
+              <span>Password Security Hash</span>
+              <span id="signal-pwd-val" style="color: var(--success);">Valid ✓</span>
+            </div>
+            <div class="meter-bar-track">
+              <div class="meter-bar-fill" id="meter-pwd-fill" style="width: 100%; background: var(--success);"></div>
+            </div>
           </div>
 
-          <!-- Multi-Factor Radar / Signal Meters -->
-          <div class="signals-meter-container">
-            <div class="meter-item">
-              <div class="meter-labels">
-                <span>Argon2id Password Hash</span>
-                <span id="signal-pwd-val" class="meter-pct" style="color: #10B981;">Valid ✓</span>
-              </div>
-              <div class="meter-bar-track">
-                <div class="meter-bar-fill" id="meter-pwd-fill" style="width: 100%; background: #10B981;"></div>
-              </div>
+          <div class="meter-item">
+            <div class="meter-labels">
+              <span>Universal Keystroke Rhythm</span>
+              <span id="signal-key-val">89%</span>
             </div>
-
-            <div class="meter-item">
-              <div class="meter-labels">
-                <span>Universal Keystroke Rhythm</span>
-                <span id="signal-key-val" class="meter-pct">89%</span>
-              </div>
-              <div class="meter-bar-track">
-                <div class="meter-bar-fill" id="meter-key-fill" style="width: 89%;"></div>
-              </div>
+            <div class="meter-bar-track">
+              <div class="meter-bar-fill" id="meter-key-fill" style="width: 89%;"></div>
             </div>
+          </div>
 
-            <div class="meter-item">
-              <div class="meter-labels">
-                <span>Psychomotor Kinematics</span>
-                <span id="signal-motor-val" class="meter-pct">91%</span>
-              </div>
-              <div class="meter-bar-track">
-                <div class="meter-bar-fill" id="meter-motor-fill" style="width: 91%;"></div>
-              </div>
+          <div class="meter-item">
+            <div class="meter-labels">
+              <span>Psychomotor Kinematics</span>
+              <span id="signal-motor-val">91%</span>
             </div>
+            <div class="meter-bar-track">
+              <div class="meter-bar-fill" id="meter-motor-fill" style="width: 91%;"></div>
+            </div>
+          </div>
 
-            <div class="meter-item">
-              <div class="meter-labels">
-                <span>Bot Authenticity & Integrity</span>
-                <span id="signal-bot-val" class="meter-pct">100%</span>
-              </div>
-              <div class="meter-bar-track">
-                <div class="meter-bar-fill" id="meter-bot-fill" style="width: 100%;"></div>
-              </div>
+          <div class="meter-item">
+            <div class="meter-labels">
+              <span>Bot Authenticity & Integrity</span>
+              <span id="signal-bot-val">100%</span>
+            </div>
+            <div class="meter-bar-track">
+              <div class="meter-bar-fill" id="meter-bot-fill" style="width: 100%;"></div>
             </div>
           </div>
         </div>
@@ -541,8 +251,8 @@
         <!-- Explainability Diagnostics Section -->
         <div class="explainability-panel">
           <div class="explainability-header">
-            <span class="exp-title">Explainability Anomaly Diagnostics (&gt;2.5&sigma; Deviations):</span>
-            <span class="exp-badge" id="exp-badge-count">0 Anomalies</span>
+            <span>Explainability Anomaly Diagnostics (&gt;2.5&sigma;):</span>
+            <span id="exp-badge-count" style="font-weight: 700;">0 Anomalies</span>
           </div>
           <ul class="explainability-list" id="modal-explainability-list">
             <!-- Populated dynamically via JS -->
@@ -552,7 +262,10 @@
 
       <!-- Modal Footer Action -->
       <div class="modal-action-footer">
-        <button class="btn btn-secondary" id="modal-close-btn">Dismiss & Return</button>
+        <button class="btn btn-secondary" id="modal-close-btn">Dismiss & Retest</button>
+        <button class="btn btn-primary" id="modal-proceed-btn" style="display: none;">
+          Enter Granted Dashboard →
+        </button>
       </div>
     </div>
   </div>

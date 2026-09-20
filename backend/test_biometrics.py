@@ -402,7 +402,7 @@ def test_impostor_password_cadence_rejection():
     print(f" -> Explainability Reasons: {resp.explainability_reasons[:3]}")
 
     assert resp.authenticated is False, "Impostor typing password was erroneously authenticated!"
-    assert resp.confidence_score < 62.0, f"Impostor score {resp.confidence_score} should be < 62.0%"
+    assert resp.confidence_score < 70.0, f"Impostor score {resp.confidence_score} should be < 70.0%"
     assert any("Cadence mismatch" in r or "ratio" in r or "dwell" in r for r in resp.explainability_reasons), "Missing cadence mismatch explainability reasons!"
     print(" -> PASS: Impostor typing password rejected with cadence mismatch diagnostics.\n")
 
@@ -448,6 +448,65 @@ def test_zero_keystrokes_rejection():
     print(" -> PASS: Zero keystrokes properly rejected.\n")
 
 
+def test_saccadic_pause_and_spectral_tremor():
+    print("[TEST 8] Testing Saccadic Notch Pause & 8-12 Hz Physiological Grip Tremor...")
+    steps = 50
+    dur = 600.0
+    dt = dur / steps
+    notch_x = 190.0
+
+    # 1. Generate legitimate human trajectory with 10 Hz tremor and notch deceleration
+    human_traj = []
+    for i in range(steps + 1):
+        progress = i / steps
+        x = 40.0 + 300.0 * progress
+        dist_notch = abs(x - notch_x)
+        notch_factor = math.exp(-((dist_notch / 25.0) ** 2))
+        detour_y = -24.0 * notch_factor
+
+        t_cur = 50.0 + (i * dt) + (60.0 * notch_factor if dist_notch < 35.0 else 0.0)
+        t_sec = (t_cur - 50.0) / 1000.0
+        tremor = 0.85 * math.sin(2 * math.pi * 10.0 * t_sec) + 0.3 * math.cos(2 * math.pi * 9.2 * t_sec)
+
+        human_traj.append(MouseEvent(x=x, y=45.0 + detour_y + tremor, t=t_cur, is_trusted=True))
+
+    s_dip, s_pause, s_decel = BiometricsEngine.extract_saccadic_notch_pause(human_traj, notch_x=notch_x)
+    t_ratio, t_peak, t_rms = BiometricsEngine.extract_physiological_grip_tremor(human_traj, notch_x=notch_x)
+
+    print(f" -> Human Kinematics: Dip Ratio={s_dip}, Pause={s_pause}ms, Tremor Power={t_ratio}, Peak={t_peak}Hz, RMS={t_rms}px")
+    assert s_dip <= 0.65, f"Human notch dip ratio {s_dip} should be <= 0.65"
+    assert s_pause >= 25.0, f"Human pause duration {s_pause}ms should be >= 25ms"
+    assert t_rms >= 0.25, f"Human grip tremor RMS {t_rms} should be >= 0.25px"
+    assert 7.0 <= t_peak <= 13.0, f"Human peak frequency {t_peak} should be in 7-13 Hz"
+    print(" -> PASS: Legitimate human saccadic pause and 8-12 Hz tremor verified.\n")
+
+    # 2. Test Synthetic Linear Bot (zero tremor -> flagged)
+    bot_traj = []
+    for i in range(steps + 1):
+        progress = i / steps
+        x = 40.0 + 300.0 * progress
+        bot_traj.append(MouseEvent(x=x, y=45.0, t=50.0 + (i * dt), is_trusted=True))
+
+    bot_drag = DragGestureEvent(
+        shape_type="token",
+        start_time=50.0,
+        drop_time=50.0 + dur,
+        hold_duration=dur,
+        docking_latency=10.0,
+        track_notch_x=notch_x,
+        trajectory=bot_traj
+    )
+
+    is_bot, bot_reasons = BiometricsEngine.detect_bot_anomalies(
+        keystrokes=[],
+        mouse_events=bot_traj,
+        drag_gestures=[bot_drag]
+    )
+    assert is_bot is True, "Linear bot without tremor was not flagged!"
+    assert any("micro-tremor" in r or "Linear trajectory" in r for r in bot_reasons), "Bot explanation missing tremor or linear detection!"
+    print(f" -> PASS: Bot flagged successfully: {bot_reasons[0]}\n")
+
+
 if __name__ == "__main__":
     print("=== RUNNING BIOPRINT V2 BIOMETRICS TESTS ===\n")
     test_argon2id_password_security()
@@ -457,4 +516,5 @@ if __name__ == "__main__":
     test_latency_benchmark()
     test_impostor_password_cadence_rejection()
     test_zero_keystrokes_rejection()
+    test_saccadic_pause_and_spectral_tremor()
     print("=== ALL BIOPRINT V2 BACKEND TESTS PASSED SUCCESSFULLY! ===")
